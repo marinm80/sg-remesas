@@ -4,15 +4,15 @@ services:
     container_name: sg_remesas_postgres
     restart: always
     environment:
-      POSTGRES_USER: remesas_user
-      POSTGRES_PASSWORD: remesas_password
-      POSTGRES_DB: sg_remesas_db
+      POSTGRES_USER: ${POSTGRES_USER:-remesas_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sg_remesas_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U remesas_user -d sg_remesas_db"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,10 +27,23 @@ services:
     restart: always
     ports:
       - "5000:5000"
-    env_file:
-      - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://remesas_user:remesas_password@postgres:5432/sg_remesas_db
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-5000}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
+      FRONTEND_URL: ${FRONTEND_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@sgremesas.com}
     depends_on:
       postgres:
         condition: service_healthy
