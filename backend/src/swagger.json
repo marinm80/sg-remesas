@@ -1,0 +1,1530 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sistema de Gestión Operativo para Negocio de Remesas (SG-Remesas) - API REST",
+    "description": "Especificación de API REST funcional y técnica para el backend de SG-Remesas v2.0. El sistema soporta operaciones de envío y retiro de remesas, KYC por niveles de cliente, reglas de cumplimiento de prevención de lavado de dinero (AML), configuración dinámica de comisiones por par de divisas, gestión de incentivos por tramos para operadores, reportes detallados y un registro de logs para auditoría.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "Equipo de Desarrollo SG-Remesas",
+      "email": "soporte@sgremesas.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Servidor Local de Desarrollo"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Coloque el token JWT devuelto por el login en el header 'Authorization: Bearer <JWT>'"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "error" },
+          "message": { "type": "string", "example": "Descripción del error ocurrido" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["admin", "operador", "auditor", "cliente"] },
+          "status": { "type": "string", "enum": ["active", "suspended", "unverified"] },
+          "kyc_level": { "type": "integer", "example": 0 },
+          "token_version": { "type": "integer", "example": 1 },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "currency": { "type": "string", "example": "USD" },
+          "balance": { "type": "number", "format": "decimal", "example": 1500.50 },
+          "status": { "type": "string", "enum": ["active", "suspended"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "tracking_code": { "type": "string", "example": "TX-174829375-920" },
+          "account_origin_id": { "type": "string", "format": "uuid", "nullable": true },
+          "account_destination_id": { "type": "string", "format": "uuid", "nullable": true },
+          "amount_source": { "type": "number", "example": 100.00 },
+          "currency_source": { "type": "string", "example": "USD" },
+          "exchange_rate": { "type": "number", "example": 0.92 },
+          "amount_dest": { "type": "number", "example": 92.00 },
+          "currency_dest": { "type": "string", "example": "EUR" },
+          "commission_fee": { "type": "number", "example": 5.00 },
+          "status": { "type": "string", "enum": ["pending", "processing", "completed", "reverted", "rejected"] },
+          "operator_id": { "type": "string", "format": "uuid", "nullable": true },
+          "notes": { "type": "string", "example": "Envío de remesa familiar" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Beneficiary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "María Pérez" },
+          "email": { "type": "string", "format": "email", "nullable": true },
+          "phone": { "type": "string", "example": "+34600123456" },
+          "bank_name": { "type": "string", "example": "Banco Santander" },
+          "account_number": { "type": "string", "example": "ES1234567890123456789012" },
+          "currency": { "type": "string", "example": "EUR" },
+          "relationship": { "type": "string", "example": "Madre" }
+        }
+      },
+      "Ticket": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "example": "Retraso en acreditación de saldo" },
+          "description": { "type": "string", "example": "Mi envío de remesa con código TX-174829375-920 aún figura en proceso." },
+          "status": { "type": "string", "enum": ["open", "replied", "closed"] },
+          "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TicketMessage": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "ticket_id": { "type": "string", "format": "uuid" },
+          "sender_id": { "type": "string", "format": "uuid" },
+          "sender_email": { "type": "string", "example": "operador1@sgremesas.com" },
+          "sender_role": { "type": "string", "example": "operador" },
+          "message": { "type": "string", "example": "Buenas tardes, estamos validando con el banco corresponsal. Le notificaremos a la brevedad." },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ComplianceAlert": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "transaction_id": { "type": "string", "format": "uuid" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "rule_name": { "type": "string", "example": "Umbral individual alto monto" },
+          "reason": { "type": "string", "example": "Transacción individual mayor o igual a $3,000 USD (Monto: $3,500.00)" },
+          "status": { "type": "string", "enum": ["pending", "reviewed", "dismissed"] },
+          "auditor_id": { "type": "string", "format": "uuid", "nullable": true },
+          "audit_notes": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CommissionRule": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "currency_source": { "type": "string", "example": "USD" },
+          "currency_dest": { "type": "string", "example": "EUR" },
+          "percentage_fee": { "type": "number", "example": 1.50 },
+          "min_fixed_fee": { "type": "number", "example": 5.00 },
+          "is_active": { "type": "boolean", "example": true }
+        }
+      },
+      "OperatorTier": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "operator_id": { "type": "string", "format": "uuid", "nullable": true, "description": "Si es nulo, aplica como regla global" },
+          "tier_limit": { "type": "number", "description": "Monto acumulado en el mes (USD) para activar este tramo", "example": 10000.00 },
+          "percentage": { "type": "number", "description": "Porcentaje de incentivo sobre el fee de la transacción", "example": 5.0 },
+          "is_active": { "type": "boolean", "example": true }
+        }
+      }
+    }
+  },
+  "security": [
+    { "BearerAuth": [] }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "summary": "Registro de clientes",
+        "description": "Permite registrar un nuevo usuario con rol de cliente en el sistema.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "first_name", "last_name"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "cliente@example.com" },
+                  "password": { "type": "string", "minLength": 8, "example": "SecurePassword123!" },
+                  "first_name": { "type": "string", "example": "Juan" },
+                  "last_name": { "type": "string", "example": "Pérez" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario registrado exitosamente. Se envía un correo de verificación simulado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Usuario registrado con éxito. Se envió un correo de verificación." },
+                    "userId": { "type": "string", "format": "uuid" },
+                    "previewEmailUrl": { "type": "string", "example": "https://ethereal.email/message/..." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de registro inválidos o email ya en uso.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Iniciar sesión local",
+        "description": "Valida las credenciales del usuario y retorna los tokens JWT correspondientes junto con los detalles de perfil.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "admin@sgremesas.com" },
+                  "password": { "type": "string", "example": "Admin1234!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    "refreshToken": { "type": "string", "example": "6d3a778c18..." },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "email": { "type": "string", "format": "email" },
+                        "role": { "type": "string" },
+                        "first_name": { "type": "string" },
+                        "last_name": { "type": "string" },
+                        "kyc_level": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas, email no verificado o cuenta suspendida.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "summary": "Verificar correo electrónico",
+        "description": "Confirma la dirección de correo electrónico del cliente usando el token recibido por email.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": { "type": "string", "example": "a4b132cd..." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verificado correctamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Email verificado con éxito" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token inválido, expirado o email ya verificado.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Solicitar recuperación de contraseña",
+        "description": "Envía un enlace con token temporal al correo para restablecer la contraseña.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "cliente@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correo de recuperación enviado (simulado).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Se envió el enlace de recuperación a su correo." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Restablecer contraseña con token",
+        "description": "Establece una nueva contraseña utilizando el token de recuperación recibido.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "newPassword"],
+                "properties": {
+                  "token": { "type": "string", "example": "reset-789f..." },
+                  "newPassword": { "type": "string", "minLength": 8, "example": "NewSuperPassword123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña restablecida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Contraseña actualizada exitosamente." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token inválido o expirado.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "get": {
+        "summary": "Iniciar login con Google OAuth 2.0",
+        "description": "Redirige al flujo de consentimiento de Google para autenticación.",
+        "security": [],
+        "responses": {
+          "302": {
+            "description": "Redirección a las páginas de login de Google."
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "Listar todos los usuarios del sistema (Staff)",
+        "description": "Obtiene la lista global de usuarios y personal (operadores, administradores, auditores). Requiere permiso `users.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios staff.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/User" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/clients": {
+      "get": {
+        "summary": "Listar todos los clientes del sistema",
+        "description": "Retorna la lista de usuarios registrados con el rol de 'cliente' e información básica de KYC. Requiere permiso `clients.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de clientes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/User" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/role": {
+      "put": {
+        "summary": "Actualizar rol de usuario (Admin)",
+        "description": "Cambia el rol de un usuario. Al hacerlo, se incrementa `token_version` en la base de datos para invalidar todas las sesiones JWT activas del usuario de inmediato (BR-24). Requiere permiso `users.roles_manage`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": { "type": "string", "enum": ["admin", "operador", "auditor", "cliente"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rol de usuario modificado. Las sesiones activas de dicho usuario han sido invalidadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Rol actualizado e invalidación de token programada." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/status": {
+      "put": {
+        "summary": "Actualizar estado de suspensión/actividad",
+        "description": "Permite suspender o reactivar la cuenta de un usuario. Al suspender, se incrementa su `token_version` para desconectarlo instantáneamente. Requiere permiso `users.edit`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["active", "suspended"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado actualizado con éxito."
+          }
+        }
+      }
+    },
+    "/api/users/internal": {
+      "post": {
+        "summary": "Crear usuario de staff interno",
+        "description": "Permite al administrador crear cuentas directas de operadores, auditores o administradores con contraseñas temporales iniciales. Requiere permiso `users.create`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "role", "first_name", "last_name"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "operator3@sgremesas.com" },
+                  "password": { "type": "string", "example": "TempPass123!" },
+                  "role": { "type": "string", "enum": ["admin", "operador", "auditor"] },
+                  "first_name": { "type": "string", "example": "Carlos" },
+                  "last_name": { "type": "string", "example": "Gómez" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario interno creado con éxito."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/reset-password-temp": {
+      "post": {
+        "summary": "Generar contraseña temporal de emergencia",
+        "description": "Permite sobreescribir la contraseña de un usuario mediante una clave temporal autogenerada para desbloqueos. Requiere permiso `users.edit`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contraseña temporal configurada y retornada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "tempPassword": { "type": "string", "example": "tmp-982341" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "summary": "Listar cuentas del usuario autenticado",
+        "description": "Devuelve las cuentas de saldo (monederos) asociadas al cliente logueado o todas las cuentas si el rol tiene privilegios elevados.",
+        "responses": {
+          "200": {
+            "description": "Cuentas obtenidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Account" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una nueva cuenta de saldo",
+        "description": "Apertura un monedero para una divisa específica (ej. USD, EUR, COP, MXN).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currency"],
+                "properties": {
+                  "currency": { "type": "string", "example": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta creada con balance inicial en cero."
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}/status": {
+      "put": {
+        "summary": "Suspender o reactivar una cuenta",
+        "description": "Permite desactivar una cuenta (congelando sus movimientos) o volver a activarla.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["active", "suspended"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado de la cuenta modificado."
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "delete": {
+        "summary": "Eliminar cuenta de saldo",
+        "description": "Remueve una cuenta de saldo si su balance es cero.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cuenta eliminada exitosamente."
+          },
+          "400": {
+            "description": "No se puede eliminar una cuenta con saldo activo."
+          }
+        }
+      }
+    },
+    "/api/transactions/track/{code}": {
+      "get": {
+        "summary": "Rastreo público de remesas",
+        "description": "Busca el estado de una remesa usando su código de seguimiento. **Medida de Privacidad:** No expone datos personales sensibles del emisor ni del receptor, solo montos, divisas, fecha y el estado actual de la transacción.",
+        "security": [],
+        "parameters": [
+          { "name": "code", "in": "path", "required": true, "schema": { "type": "string" }, "example": "TX-174829375-920" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Información del estado del envío.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "completed" },
+                    "currency_source": { "type": "string", "example": "USD" },
+                    "amount_source": { "type": "number", "example": 250.00 },
+                    "currency_dest": { "type": "string", "example": "COP" },
+                    "amount_dest": { "type": "number", "example": 985000.00 },
+                    "created_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transacción no encontrada."
+          }
+        }
+      }
+    },
+    "/api/transactions": {
+      "get": {
+        "summary": "Listar transacciones",
+        "description": "Obtiene la lista de transacciones del sistema. Los clientes sólo ven sus propios registros; operadores, auditores y administradores ven la lista global. Soporta paginación. Requiere permiso `transactions.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de transacciones.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Transaction" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Registrar una transacción oficial (Operador)",
+        "description": "Permite registrar una transacción de remesa o de retiro físicamente en caja. Ejecuta cargos e incrementos de saldos de manera atómica con transacción SQL (BR-01, BR-14). Evalúa de inmediato las reglas AML para disparar alertas en caso de sospecha. Requiere permiso `transactions.create`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["account_origin_id", "currency_dest", "amount_source", "beneficiary_id"],
+                "properties": {
+                  "account_origin_id": { "type": "string", "format": "uuid" },
+                  "currency_dest": { "type": "string", "example": "EUR" },
+                  "amount_source": { "type": "number", "example": 500.00 },
+                  "beneficiary_id": { "type": "string", "format": "uuid" },
+                  "notes": { "type": "string", "example": "Pago de colegiatura" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transacción registrada exitosamente. Retorna el código de rastreo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Transacción completada" },
+                    "transaction": { "$ref": "#/components/schemas/Transaction" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Saldo insuficiente, límites KYC superados, o error de cálculo."
+          }
+        }
+      }
+    },
+    "/api/transactions/preview": {
+      "post": {
+        "summary": "Simulación y previsualización de transacción",
+        "description": "Calcula tasas de cambio e impuestos/fees aplicables basándose en las reglas vigentes en base de datos. Permite validar los cargos antes de procesar un envío formal (BR-19). No requiere permisos de staff.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency_source", "currency_dest"],
+                "properties": {
+                  "amount": { "type": "number", "example": 100.00 },
+                  "currency_source": { "type": "string", "example": "USD" },
+                  "currency_dest": { "type": "string", "example": "EUR" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detalle del cálculo simulado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "amount_source": { "type": "number", "example": 100.00 },
+                    "currency_source": { "type": "string", "example": "USD" },
+                    "exchange_rate": { "type": "number", "example": 0.92 },
+                    "amount_dest": { "type": "number", "example": 92.00 },
+                    "currency_dest": { "type": "string", "example": "EUR" },
+                    "commission_fee": { "type": "number", "example": 5.00 },
+                    "total_charge": { "type": "number", "example": 105.00 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/{id}/revert": {
+      "post": {
+        "summary": "Revertir transacción (Operador/Admin)",
+        "description": "Cancela una transacción y genera una transacción de espejo/reversa exacta (monto invertido) para auditoría. Restablece saldos y anula incentivos calculados previamente del operador (BR-02, BR-16). Requiere permiso `transactions.revert`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transacción revertida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "message": { "type": "string", "example": "Transacción revertida exitosamente. Se generó movimiento de espejo." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/requests/all": {
+      "get": {
+        "summary": "Listar solicitudes de transacción",
+        "description": "Los clientes ven sus solicitudes de remesa/retiro enviadas desde la app. Los operadores ven las solicitudes pendientes de caja para formalización.",
+        "responses": {
+          "200": {
+            "description": "Lista de solicitudes de transacciones.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "format": "uuid" },
+                      "client_id": { "type": "string", "format": "uuid" },
+                      "type": { "type": "string", "example": "remesa" },
+                      "amount": { "type": "number", "example": 150.00 },
+                      "currency": { "type": "string", "example": "USD" },
+                      "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+                      "notes": { "type": "string" },
+                      "created_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/requests": {
+      "post": {
+        "summary": "Crear solicitud de remesa/retiro (Cliente)",
+        "description": "Registra una solicitud de transacción de remesa o de retiro en el sistema que quedará pendiente hasta ser procesada en caja.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "amount", "currency", "beneficiary_id"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["remesa", "retiro"], "example": "remesa" },
+                  "amount": { "type": "number", "example": 200.00 },
+                  "currency": { "type": "string", "example": "USD" },
+                  "beneficiary_id": { "type": "string", "format": "uuid" },
+                  "notes": { "type": "string", "example": "Remesa escolar" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Solicitud creada correctamente en estado pendiente."
+          }
+        }
+      }
+    },
+    "/api/transactions/requests/{id}/status": {
+      "put": {
+        "summary": "Actualizar estado de solicitud (Aprobar/Rechazar)",
+        "description": "Permite aprobar o rechazar solicitudes de clientes. Si se aprueba, se genera la transacción formal y se cobra en el saldo. Requiere permiso `transactions.status_change`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["approved", "rejected"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud actualizada."
+          }
+        }
+      }
+    },
+    "/api/kyc/upload": {
+      "post": {
+        "summary": "Subir documento KYC (Cliente)",
+        "description": "Permite subir documentos de identidad (JPEG, PNG, PDF) con un peso máximo de 5MB (RF-28, BR-31). Registra una solicitud de revisión de KYC.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary", "description": "Archivo del documento" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Documento subido correctamente. Pendiente de verificación por soporte."
+          }
+        }
+      }
+    },
+    "/api/kyc/documents": {
+      "get": {
+        "summary": "Listar documentos KYC del cliente",
+        "description": "Retorna la lista de los documentos subidos por el propio cliente logueado.",
+        "responses": {
+          "200": {
+            "description": "Lista de documentos."
+          }
+        }
+      }
+    },
+    "/api/kyc/history": {
+      "get": {
+        "summary": "Historial de niveles de KYC del cliente",
+        "description": "Obtiene la bitácora de cambios del nivel de KYC de la cuenta del cliente logueado.",
+        "responses": {
+          "200": {
+            "description": "Lista de cambios de nivel históricos."
+          }
+        }
+      }
+    },
+    "/api/kyc/documents/view/{id}": {
+      "get": {
+        "summary": "Visualizar documento de forma segura",
+        "description": "Sirve el archivo almacenado en disco solo si el token del solicitante tiene privilegios suficientes o si es el dueño legítimo de la documentación (Aislamiento de Seguridad).",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna el flujo binario del archivo (imagen/pdf) con el Content-Type correcto."
+          }
+        }
+      }
+    },
+    "/api/kyc/pending": {
+      "get": {
+        "summary": "Ver documentos pendientes de verificación (Staff)",
+        "description": "Devuelve los documentos que están listos para revisión. Requiere permiso `clients.kyc_review`.",
+        "responses": {
+          "200": {
+            "description": "Lista de documentos pendientes."
+          }
+        }
+      }
+    },
+    "/api/kyc/documents/{id}/review": {
+      "post": {
+        "summary": "Aprobar o rechazar documento KYC (Staff)",
+        "description": "Procesa un documento KYC pendiente. Si se aprueba y es elegible, sube el nivel KYC de la cuenta del cliente (BR-29). Requiere permiso `clients.kyc_review`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["APPROVED", "REJECTED"], "example": "APPROVED" },
+                  "comment": { "type": "string", "example": "Pasaporte legible y vigente." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Documento revisado con éxito."
+          }
+        }
+      }
+    },
+    "/api/beneficiaries": {
+      "get": {
+        "summary": "Listar destinatarios frecuentes (Cliente)",
+        "description": "Devuelve la libreta de beneficiarios registrados por el cliente logueado.",
+        "responses": {
+          "200": {
+            "description": "Lista de beneficiarios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Beneficiary" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Registrar nuevo beneficiario",
+        "description": "Agrega un beneficiario a la agenda del cliente logueado.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "bank_name", "account_number", "currency"],
+                "properties": {
+                  "name": { "type": "string", "example": "María Pérez" },
+                  "email": { "type": "string", "format": "email", "example": "maria@example.com" },
+                  "phone": { "type": "string", "example": "+34600123456" },
+                  "bank_name": { "type": "string", "example": "Banco Santander" },
+                  "account_number": { "type": "string", "example": "ES1234567890123456789012" },
+                  "currency": { "type": "string", "example": "EUR" },
+                  "relationship": { "type": "string", "example": "Madre" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Beneficiario registrado exitosamente."
+          }
+        }
+      }
+    },
+    "/api/beneficiaries/{id}": {
+      "put": {
+        "summary": "Actualizar beneficiario",
+        "description": "Modifica los datos de un beneficiario existente en la libreta del cliente.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" },
+                  "bank_name": { "type": "string" },
+                  "account_number": { "type": "string" },
+                  "relationship": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Beneficiario actualizado."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar beneficiario de la libreta",
+        "description": "Remueve el beneficiario de la agenda del cliente.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Beneficiario eliminado."
+          }
+        }
+      }
+    },
+    "/api/tickets": {
+      "get": {
+        "summary": "Listar tickets de soporte",
+        "description": "Los clientes ven su historial de tickets propios. Operadores, auditores y administradores ven la cola de tickets del sistema de forma global. Requiere permiso `tickets.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de tickets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Ticket" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo ticket de soporte",
+        "description": "Permite registrar una consulta, reclamo o ticket de asistencia. Requiere permiso `tickets.create`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description"],
+                "properties": {
+                  "title": { "type": "string", "example": "Consulta sobre saldo" },
+                  "description": { "type": "string", "example": "Hola, necesito saber cómo transferir desde mi cuenta bancaria externa." },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high"], "default": "medium" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ticket de soporte abierto."
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}": {
+      "get": {
+        "summary": "Detalle e hilo de mensajes de un ticket",
+        "description": "Devuelve la información de un ticket y el listado de respuestas asociadas. Requiere permiso `tickets.view`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hilo de soporte del ticket obtenido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ticket": { "$ref": "#/components/schemas/Ticket" },
+                    "messages": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TicketMessage" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}/messages": {
+      "post": {
+        "summary": "Agregar mensaje al hilo de soporte",
+        "description": "Registra una respuesta en el ticket por parte del cliente o del staff. Cambia el estado del ticket automáticamente a 'open' si responde el cliente, o 'replied' si responde el operador. Requiere permiso `tickets.reply`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "Muchas gracias, ya logré visualizar el movimiento." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje añadido correctamente."
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}/status": {
+      "put": {
+        "summary": "Cerrar o reabrir ticket",
+        "description": "Permite resolver y cerrar el ticket de soporte. Requiere permiso `tickets.close`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["open", "closed"], "example": "closed" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado actualizado."
+          }
+        }
+      }
+    },
+    "/api/compliance/alerts": {
+      "get": {
+        "summary": "Listar todas las alertas AML (Auditor)",
+        "description": "Obtiene la lista histórica de alertas emitidas por el módulo de prevención de lavado de dinero (AML). Requiere permiso `audit.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de alertas obtenidas."
+          }
+        }
+      }
+    },
+    "/api/compliance/alerts/pending": {
+      "get": {
+        "summary": "Listar alertas AML pendientes",
+        "description": "Muestra solo las alertas de lavado de dinero que no han sido auditadas aún. Requiere permiso `audit.view`.",
+        "responses": {
+          "200": {
+            "description": "Alertas sin resolver."
+          }
+        }
+      }
+    },
+    "/api/compliance/alerts/{id}/review": {
+      "post": {
+        "summary": "Revisar y resolver alerta AML (Auditor)",
+        "description": "Registra el dictamen y comentarios del auditor sobre una alerta sospechosa específica. Requiere permiso `audit.view`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["reviewed", "dismissed"], "example": "reviewed" },
+                  "notes": { "type": "string", "example": "Se validó la justificación de fondos mediante recibos de nómina." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dictamen de auditoría registrado."
+          }
+        }
+      }
+    },
+    "/api/compliance/rules": {
+      "get": {
+        "summary": "Ver reglas AML",
+        "description": "Devuelve la configuración actual del motor de prevención de fraude y lavado de dinero. Requiere permiso `audit.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de reglas y límites de cumplimiento."
+          }
+        }
+      }
+    },
+    "/api/compliance/rules/{id}": {
+      "put": {
+        "summary": "Modificar regla AML (Admin)",
+        "description": "Permite ajustar parámetros de monitoreo transaccional (ej: bajar umbral a $2500 USD). Requiere permiso `users.roles_manage`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit_val": { "type": "number", "example": 2500.00 },
+                  "limit_tx": { "type": "integer", "example": 3 },
+                  "window_hours": { "type": "integer", "example": 24 },
+                  "is_active": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Regla AML actualizada exitosamente."
+          }
+        }
+      }
+    },
+    "/api/commissions/rules": {
+      "get": {
+        "summary": "Ver reglas de comisiones activas",
+        "description": "Obtiene la matriz de tarifas vigentes por par de monedas. Requiere permiso `commissions.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de reglas registradas en el sistema."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear nueva regla de comisión",
+        "description": "Registra una regla de cobro para una transferencia entre dos monedas. La combinación par de monedas activas debe ser única (BR-18). Requiere permiso `commissions.edit`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currency_source", "currency_dest", "percentage_fee", "min_fixed_fee"],
+                "properties": {
+                  "currency_source": { "type": "string", "example": "USD" },
+                  "currency_dest": { "type": "string", "example": "MXN" },
+                  "percentage_fee": { "type": "number", "example": 2.0 },
+                  "min_fixed_fee": { "type": "number", "example": 3.50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Regla de comisión agregada."
+          }
+        }
+      }
+    },
+    "/api/commissions/rules/{id}/deactivate": {
+      "put": {
+        "summary": "Desactivar regla de comisión",
+        "description": "Deshabilita una regla de comisión existente. Requiere permiso `commissions.edit`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Regla desactivada."
+          }
+        }
+      }
+    },
+    "/api/commissions/tiers": {
+      "get": {
+        "summary": "Ver tramos de incentivos de operador",
+        "description": "Lista las reglas de incentivos mensuales por volumen para operadores. Requiere permiso `commissions.view`.",
+        "responses": {
+          "200": {
+            "description": "Lista de tramos de operador."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear tramo de incentivos",
+        "description": "Establece un nuevo tramo de incentivos. Si `operator_id` no se proporciona, la regla es global. Requiere permiso `commissions.edit`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tier_limit", "percentage"],
+                "properties": {
+                  "operator_id": { "type": "string", "format": "uuid", "nullable": true },
+                  "tier_limit": { "type": "number", "example": 15000.00 },
+                  "percentage": { "type": "number", "example": 6.5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tramo configurado correctamente."
+          }
+        }
+      }
+    },
+    "/api/commissions/tiers/{id}/deactivate": {
+      "put": {
+        "summary": "Desactivar tramo de operador",
+        "description": "Deshabilita la elegibilidad de un tramo de incentivos. Requiere permiso `commissions.edit`.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tramo de incentivos desactivado."
+          }
+        }
+      }
+    },
+    "/api/commissions/config": {
+      "get": {
+        "summary": "Ver configuración global de comisiones",
+        "description": "Obtiene variables por defecto (ej. comisión fija base cuando no hay regla de par de monedas). Requiere permiso `commissions.view`.",
+        "responses": {
+          "200": {
+            "description": "Configuraciones globales obtenidas."
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar configuración global",
+        "description": "Modifica las variables de sistema de comisiones base. Requiere permiso `commissions.edit`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "default_percentage": { "type": "number", "example": 2.5 },
+                  "default_min_fixed": { "type": "number", "example": 5.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuración global actualizada."
+          }
+        }
+      }
+    },
+    "/api/reports/operator-commissions": {
+      "get": {
+        "summary": "Reporte de comisiones y volumen mensual de operadores (Admin/Auditor)",
+        "description": "Obtiene la suma mensual de transacciones, monto total procesado en USD y los incentivos generados de cada operador. Requiere permiso `reports.view`.",
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "type": "string" }, "description": "Formato YYYY-MM", "example": "2026-06" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Métricas mensuales por operador."
+          }
+        }
+      }
+    },
+    "/api/reports/transactions-summary": {
+      "get": {
+        "summary": "Reporte general ejecutivo de transacciones",
+        "description": "Devuelve resúmenes del volumen operado, transacciones exitosas versus reversadas y conteos organizados por divisa. Requiere permiso `reports.view`.",
+        "parameters": [
+          { "name": "start_date", "in": "query", "schema": { "type": "string", "format": "date" }, "example": "2026-06-01" },
+          { "name": "end_date", "in": "query", "schema": { "type": "string", "format": "date" }, "example": "2026-06-30" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumen ejecutivo obtenido."
+          }
+        }
+      }
+    },
+    "/api/reports/audit-logs": {
+      "get": {
+        "summary": "Logs de auditoría del sistema (Auditor/Admin)",
+        "description": "Muestra los registros históricos detallados de todas las acciones del sistema realizadas por los usuarios (cambios de roles, aprobaciones KYC, creaciones de reglas). Requiere permiso `audit.view`.",
+        "parameters": [
+          { "name": "user_id", "in": "query", "schema": { "type": "string", "format": "uuid" }, "description": "Filtro opcional por usuario" },
+          { "name": "action", "in": "query", "schema": { "type": "string" }, "description": "Filtro opcional por acción" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs de auditoría devueltos con paginación."
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "summary": "Listar notificaciones del usuario logueado",
+        "description": "Devuelve las alertas y notificaciones internas dirigidas a la bandeja del usuario activo.",
+        "responses": {
+          "200": {
+            "description": "Lista de notificaciones recibidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "format": "uuid" },
+                      "user_id": { "type": "string", "format": "uuid" },
+                      "message": { "type": "string" },
+                      "is_read": { "type": "boolean" },
+                      "created_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "put": {
+        "summary": "Marcar notificación como leída",
+        "description": "Modifica el estado de lectura de una notificación a 'leído'.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notificación marcada como leída."
+          }
+        }
+      }
+    },
+    "/api/notifications/read-all": {
+      "put": {
+        "summary": "Marcar todas las notificaciones del usuario como leídas",
+        "description": "Establece is_read en verdadero para todas las alertas de la bandeja de entrada del usuario autenticado.",
+        "responses": {
+          "200": {
+            "description": "Todas las notificaciones actualizadas."
+          }
+        }
+      }
+    }
+  }
+}
