@@ -1,6 +1,8 @@
 # Stage 1: Compilar la aplicación React con Vite
 FROM node:20-alpine AS build
 WORKDIR /app
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Instalar pnpm
 RUN npm install -g pnpm
@@ -22,6 +24,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Exponer el puerto 80
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
 
 # Iniciar Nginx
 CMD ["nginx", "-g", "daemon off;"]

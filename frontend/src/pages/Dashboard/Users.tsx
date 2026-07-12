@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../../services/api.js';
+import { apiRequest, apiUrl } from '../../services/api.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
   Users, Plus, Shield, ShieldCheck, X,
@@ -372,7 +372,7 @@ export default function UsersManagement() {
                     </div>
                     <div className="flex gap-2">
                       <a
-                        href={`http://localhost:5000/api/kyc/documents/view/${doc.id}`}
+                        href={apiUrl(`/kyc/documents/view/${doc.id}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 h-8 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg text-xs flex items-center justify-center gap-1"

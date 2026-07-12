@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../services/api.js';
 
 export default function Landing() {
   // Simulador State
@@ -88,7 +89,7 @@ export default function Landing() {
     setTrackingResult(null);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/transactions/track/${trackCode.trim().toUpperCase()}`);
+      const res = await fetch(apiUrl(`/transactions/track/${trackCode.trim().toUpperCase()}`));
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || 'Código de seguimiento no válido.');

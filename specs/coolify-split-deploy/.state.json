@@ -1,0 +1,15 @@
+{
+  "spec": "done",
+  "tech_spec": "done",
+  "plan": "done",
+  "tasks": "done",
+  "implementation": "done",
+  "review": "done",
+  "docs": "done",
+  "notes": [
+    "Migration approved by user request on 2026-07-12.",
+    "Secrets remain external to Git and must be configured in Coolify.",
+    "Backend build passed and frontend production build passed on 2026-07-12.",
+    "Migration committed and pushed to GitHub from main."
+  ]
+}

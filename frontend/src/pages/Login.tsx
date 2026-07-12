@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore.js';
-import { apiRequest } from '../services/api.js';
+import { apiRequest, apiUrl } from '../services/api.js';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ export default function Login() {
     if (token && refreshToken) {
       // Login exitoso por Google OAuth. Recuperar info del usuario
       setLoading(true);
-      fetch('http://localhost:5000/api/accounts', {
+      fetch(apiUrl('/accounts'), {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(async () => {
@@ -110,7 +110,7 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = apiUrl('/auth/google');
   };
 
   return (

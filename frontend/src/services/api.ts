@@ -1,6 +1,12 @@
 import { useAuthStore } from '../store/useAuthStore.js';
 
-const API_BASE_URL = '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+export function apiUrl(path: string): string {
+  const normalizedBase = API_BASE_URL.replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
 
 interface RequestOptions extends RequestInit {
   bodyData?: any;
@@ -30,7 +36,7 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
     headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+  const response = await fetch(apiUrl(path), fetchOptions);
 
   if (response.status === 401) {
     // Sesión expirada o token_version invalidado (BR-24)

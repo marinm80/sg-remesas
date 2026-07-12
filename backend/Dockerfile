@@ -18,5 +18,8 @@ RUN pnpm prune --prod
 # Exponer el puerto del servidor backend
 EXPOSE 5000
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:5000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 # Ejecutar el servidor compilado
 CMD ["node", "dist/index.js"]
