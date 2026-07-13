@@ -187,7 +187,7 @@ export default function UsersManagement() {
             className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
               activeTab === 'internal'
                 ? 'bg-[#2ABFA3] text-slate-900 font-extrabold shadow-md'
-                : 'bg-transparent text-slate-400 hover:text-white'
+                : 'bg-white/25 text-slate-950 hover:bg-white/40'
             }`}
           >
             <span className="flex items-center gap-2"><UserCog size={15} /> Equipo Interno</span>
@@ -197,7 +197,7 @@ export default function UsersManagement() {
             className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
               activeTab === 'clients'
                 ? 'bg-[#2ABFA3] text-slate-900 font-extrabold shadow-md'
-                : 'bg-transparent text-slate-400 hover:text-white'
+                : 'bg-white/25 text-slate-950 hover:bg-white/40'
             }`}
           >
             <span className="flex items-center gap-2"><Users size={15} /> Clientes</span>
