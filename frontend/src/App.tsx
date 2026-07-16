@@ -102,7 +102,7 @@ export default function App() {
           <Route 
             path="transactions" 
             element={
-              <ProtectedRoute allowedRoles={['cliente', 'admin', 'operador']}>
+              <ProtectedRoute allowedRoles={['cliente', 'admin', 'operador', 'auditor']}>
                 <TransactionsHistory />
               </ProtectedRoute>
             } 

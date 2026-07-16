@@ -14,7 +14,8 @@ export interface ComplianceRule {
 
 export interface ComplianceAlert {
   id: string;
-  transaction_id: string;
+  transaction_id: string | null;
+  client_request_id: string | null;
   client_id: string;
   rule_code: string;
   triggered_amount_usd: number;
@@ -69,18 +70,20 @@ export async function updateComplianceRule(
  * Crea una alerta de lavado de dinero asociada a una transacción
  */
 export async function createComplianceAlert(alert: {
-  transaction_id: string;
+  transaction_id?: string | null;
+  client_request_id?: string | null;
   client_id: string;
   rule_code: string;
   triggered_amount_usd: number;
 }): Promise<void> {
-  const { transaction_id, client_id, rule_code, triggered_amount_usd } = alert;
+  const { transaction_id = null, client_request_id = null, client_id, rule_code, triggered_amount_usd } = alert;
   
   const query = `
-    INSERT INTO compliance_alerts (transaction_id, client_id, rule_code, triggered_amount_usd, status)
-    VALUES ($1, $2, $3, $4, 'pending');
+    INSERT INTO compliance_alerts (transaction_id, client_request_id, client_id, rule_code, triggered_amount_usd, status)
+    VALUES ($1, $2, $3, $4, $5, 'pending')
+    ON CONFLICT DO NOTHING;
   `;
-  await pool.query(query, [transaction_id, client_id, rule_code, triggered_amount_usd]);
+  await pool.query(query, [transaction_id, client_request_id, client_id, rule_code, triggered_amount_usd]);
 }
 
 /**
@@ -119,10 +122,14 @@ export async function findPendingComplianceAlerts(): Promise<any[]> {
   const query = `
     SELECT a.*, 
            u.name as client_name, u.email as client_email,
-           t.tracking_code, t.amount as tx_amount, t.currency as tx_currency
+           t.tracking_code,
+           COALESCE(t.amount, cr.amount) as tx_amount,
+           COALESCE(t.currency, cr.currency) as tx_currency,
+           cr.type as request_type
     FROM compliance_alerts a
     JOIN users u ON a.client_id = u.id
-    JOIN transactions t ON a.transaction_id = t.id
+    LEFT JOIN transactions t ON a.transaction_id = t.id
+    LEFT JOIN client_requests cr ON a.client_request_id = cr.id
     WHERE a.status = 'pending'
     ORDER BY a.created_at DESC;
   `;
@@ -145,11 +152,19 @@ export async function listAllComplianceAlerts(filters: {
   let query = `
     SELECT a.*, 
            u.name as client_name, u.email as client_email,
-           t.tracking_code, t.amount as tx_amount, t.currency as tx_currency,
+           t.tracking_code,
+           COALESCE(t.amount, cr.amount) as tx_amount,
+           COALESCE(t.currency, cr.currency) as tx_currency,
+           cr.type as request_type,
+           cr.destination_account_info,
+           cr.beneficiary,
+           cr.status as request_status,
+           t.status as transaction_status,
            auditor.name as reviewer_name
     FROM compliance_alerts a
     JOIN users u ON a.client_id = u.id
-    JOIN transactions t ON a.transaction_id = t.id
+    LEFT JOIN transactions t ON a.transaction_id = t.id
+    LEFT JOIN client_requests cr ON a.client_request_id = cr.id
     LEFT JOIN users auditor ON a.reviewed_by = auditor.id
     WHERE 1=1
   `;
@@ -180,6 +195,36 @@ export async function listAllComplianceAlerts(filters: {
 
   const result = await pool.query(query, values);
   return result.rows;
+}
+
+export async function findComplianceAlertById(id: string): Promise<any | null> {
+  const query = `
+    SELECT a.*,
+           t.status as transaction_status,
+           t.type as transaction_type,
+           t.amount as transaction_amount,
+           t.currency as transaction_currency,
+           t.account_origin_id,
+           t.account_destination_id,
+           t.beneficiary_id,
+           t.beneficiary_snapshot,
+           t.exchange_rate,
+           t.commission_rate_applied,
+           t.commission_amount,
+           t.total_charged,
+           cr.status as request_status,
+           cr.type as request_type,
+           cr.amount as request_amount,
+           cr.currency as request_currency,
+           cr.destination_account_info,
+           cr.beneficiary
+    FROM compliance_alerts a
+    LEFT JOIN transactions t ON a.transaction_id = t.id
+    LEFT JOIN client_requests cr ON a.client_request_id = cr.id
+    WHERE a.id = $1;
+  `;
+  const result = await pool.query(query, [id]);
+  return result.rows.length ? result.rows[0] : null;
 }
 
 /**

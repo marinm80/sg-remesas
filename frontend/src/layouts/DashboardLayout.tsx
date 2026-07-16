@@ -104,6 +104,7 @@ export default function DashboardLayout() {
       case 'auditor':
         return [
           { name: 'Alertas AML', path: '/dashboard/auditor', icon: ShieldAlert },
+          { name: 'Transacciones', path: '/dashboard/transactions', icon: Send },
           { name: 'Usuarios', path: '/dashboard/users', icon: Users },
           { name: 'Log de Auditoría', path: '/dashboard/audit-logs', icon: FileText },
           { name: 'Comisiones y Tramos', path: '/dashboard/commissions', icon: Percent },

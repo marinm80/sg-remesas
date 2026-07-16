@@ -22,6 +22,7 @@ router.put('/requests/:id/status', requirePermission('transactions.status_change
 
 router.get('/:id', requirePermission('transactions.view'), transactionController.getTransactionDetails);
 router.post('/', requirePermission('transactions.create'), transactionController.createTransaction);
+router.put('/:id/status', requirePermission('transactions.status_change'), transactionController.updateTransactionStatus);
 router.post('/:id/revert', requirePermission('transactions.revert'), transactionController.revertTransaction);
 
 export default router;

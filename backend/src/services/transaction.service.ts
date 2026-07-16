@@ -185,7 +185,7 @@ export async function executeTransaction(input: CreateTransactionInput): Promise
     if (clientRequestId) {
       const clientRequest = await requestRepository.findRequestByIdForUpdate(clientRequestId, client);
       if (!clientRequest) throw new Error('La solicitud de cliente no existe');
-      if (!['pending', 'processing'].includes(clientRequest.status)) {
+      if (!['pending', 'processing', 'audit_review'].includes(clientRequest.status)) {
         throw new Error('La solicitud ya fue procesada, cancelada o rechazada');
       }
       reservedAmountToRelease = parseFloat((clientRequest.destination_account_info?.reservedAmount ?? clientRequest.amount).toString());

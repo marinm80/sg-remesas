@@ -5,6 +5,7 @@ import * as transactionService from '../services/transaction.service.js';
 import * as transactionRepository from '../repositories/transaction.repository.js';
 import * as requestRepository from '../repositories/request.repository.js';
 import * as accountRepository from '../repositories/account.repository.js';
+import * as complianceRepository from '../repositories/compliance.repository.js';
 import * as commissionService from '../services/commission.service.js';
 
 /**
@@ -112,6 +113,90 @@ export async function revertTransaction(req: Request, res: Response): Promise<vo
     });
   } catch (err: any) {
     res.status(400).json({ status: 'error', message: err.message });
+  }
+}
+
+/**
+ * Actualiza el estado operativo de una transacciÃ³n existente.
+ * Usado para enviar a auditorÃ­a, aprobar o declinar transacciones pendientes.
+ */
+export async function updateTransactionStatus(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const schema = Joi.object({
+    status: Joi.string().valid('processing', 'audit_review', 'completed', 'failed').required(),
+    notes: Joi.string().allow(null, ''),
+  });
+
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    res.status(400).json({ status: 'error', message: error.details[0].message });
+    return;
+  }
+
+  const id = req.params.id as string;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const transaction = await transactionRepository.findTransactionByIdForUpdate(id, client);
+    if (!transaction) {
+      res.status(404).json({ status: 'error', message: 'TransacciÃ³n no encontrada' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    if (transaction.status === 'reversed') {
+      res.status(400).json({ status: 'error', message: 'No se puede cambiar el estado de una transacciÃ³n revertida.' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    if (transaction.status === 'completed' && value.status !== 'audit_review') {
+      res.status(400).json({ status: 'error', message: 'Una transacciÃ³n completada solo puede enviarse a auditorÃ­a o revertirse.' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    const note = value.notes || `Estado actualizado a ${value.status}`;
+    await transactionRepository.updateTransactionStatus(
+      id,
+      value.status,
+      transaction.status,
+      user.id,
+      note,
+      client
+    );
+
+    if (value.status === 'audit_review') {
+      const alertContext = await client.query(
+        `SELECT COALESCE(ao.client_id, ad.client_id, t.created_by) as client_id,
+                t.amount,
+                t.currency
+         FROM transactions t
+         LEFT JOIN accounts ao ON t.account_origin_id = ao.id
+         LEFT JOIN accounts ad ON t.account_destination_id = ad.id
+         WHERE t.id = $1`,
+        [id]
+      );
+      const row = alertContext.rows[0];
+      if (row?.client_id) {
+        await complianceRepository.createComplianceAlert({
+          transaction_id: id,
+          client_id: row.client_id,
+          rule_code: 'manual_review',
+          triggered_amount_usd: Number(row.amount),
+        });
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(200).json({ status: 'ok', message: 'Estado de transacciÃ³n actualizado correctamente.' });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ status: 'error', message: err.message });
+  } finally {
+    client.release();
   }
 }
 
@@ -361,7 +446,7 @@ export async function getClientRequests(req: Request, res: Response): Promise<vo
 export async function updateClientRequestStatus(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const schema = Joi.object({
-    status: Joi.string().valid('processing', 'rejected').required(),
+    status: Joi.string().valid('processing', 'audit_review', 'rejected').required(),
   });
 
   const { error, value } = schema.validate(req.body);
@@ -384,8 +469,8 @@ export async function updateClientRequestStatus(req: Request, res: Response): Pr
         return;
       }
 
-      if (!['pending', 'processing'].includes(clientReq.status)) {
-        res.status(400).json({ status: 'error', message: 'Solo se pueden actualizar solicitudes pendientes o en proceso.' });
+      if (!['pending', 'processing', 'audit_review'].includes(clientReq.status)) {
+        res.status(400).json({ status: 'error', message: 'Solo se pueden actualizar solicitudes pendientes, en proceso o auditorÃ­a.' });
         await client.query('ROLLBACK');
         return;
       }
@@ -399,6 +484,16 @@ export async function updateClientRequestStatus(req: Request, res: Response): Pr
       }
 
       await requestRepository.updateRequestStatus(id, value.status, user.id, client);
+
+      if (value.status === 'audit_review') {
+        await complianceRepository.createComplianceAlert({
+          client_request_id: id,
+          client_id: clientReq.client_id,
+          rule_code: 'manual_review',
+          triggered_amount_usd: Number(clientReq.amount),
+        });
+      }
+
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');

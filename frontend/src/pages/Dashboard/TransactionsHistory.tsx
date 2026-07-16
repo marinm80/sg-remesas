@@ -7,22 +7,25 @@ import {
   CheckCircle,
   CheckCircle2,
   Clock,
+  Eye,
   RefreshCw,
   RotateCcw,
   Send,
   XCircle,
 } from 'lucide-react';
 
-type GroupKey = 'pending' | 'approved' | 'declined' | 'reversed';
+type GroupKey = 'pending' | 'audit' | 'approved' | 'declined' | 'reversed';
 
 const groups: Array<{ key: GroupKey; label: string; icon: any }> = [
   { key: 'pending', label: 'Pendientes', icon: Clock },
+  { key: 'audit', label: 'AML', icon: Eye },
   { key: 'approved', label: 'Aprobadas', icon: CheckCircle2 },
   { key: 'declined', label: 'Declinadas', icon: XCircle },
   { key: 'reversed', label: 'Revertidas', icon: RotateCcw },
 ];
 
 function normalizeStatus(status: string): GroupKey {
+  if (['audit_review'].includes(status)) return 'audit';
   if (['completed'].includes(status)) return 'approved';
   if (['rejected', 'failed', 'cancelled'].includes(status)) return 'declined';
   if (['reversed'].includes(status)) return 'reversed';
@@ -34,6 +37,7 @@ function statusLabel(status: string): string {
     completed: 'Aprobada',
     pending: 'Pendiente',
     processing: 'Procesando',
+    audit_review: 'AML',
     rejected: 'Declinada',
     cancelled: 'Cancelada',
     failed: 'Fallida',
@@ -44,6 +48,7 @@ function statusLabel(status: string): string {
 
 function statusClasses(status: string): string {
   if (status === 'completed') return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+  if (status === 'audit_review') return 'bg-sky-500/10 text-sky-200 border-sky-500/30';
   if (status === 'rejected' || status === 'failed' || status === 'cancelled') return 'bg-red-500/10 text-red-300 border-red-500/30';
   if (status === 'reversed') return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
   return 'bg-yellow-500/10 text-yellow-200 border-yellow-500/30';
@@ -70,8 +75,10 @@ export default function TransactionsHistory() {
 
   const [revertTx, setRevertTx] = useState<any | null>(null);
   const [revertNotes, setRevertNotes] = useState<string>('');
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
 
-  const canManage = user?.role === 'admin' || user?.role === 'operador';
+  const canManage = user?.role === 'admin' || user?.role === 'operador' || user?.role === 'auditor';
+  const canCancel = user?.role === 'admin' || user?.role === 'operador';
 
   const fetchData = async () => {
     setLoading(true);
@@ -166,6 +173,32 @@ export default function TransactionsHistory() {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [activeGroup, requests, transactions]);
 
+  useEffect(() => {
+    setSelectedRowIds([]);
+  }, [activeGroup]);
+
+  const rowKey = (row: any) => `${row.source}:${row.id}`;
+  const selectedRows = useMemo(
+    () => rows.filter((row) => selectedRowIds.includes(rowKey(row))),
+    [rows, selectedRowIds]
+  );
+  const allVisibleSelected = rows.length > 0 && rows.every((row) => selectedRowIds.includes(rowKey(row)));
+
+  const toggleRowSelection = (row: any) => {
+    const key = rowKey(row);
+    setSelectedRowIds((current) =>
+      current.includes(key) ? current.filter((id) => id !== key) : [...current, key]
+    );
+  };
+
+  const toggleAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelectedRowIds([]);
+      return;
+    }
+    setSelectedRowIds(rows.map((row) => rowKey(row)));
+  };
+
   const counts = useMemo(() => {
     const allRows = [
       ...requests.map((request) => request.status),
@@ -177,7 +210,7 @@ export default function TransactionsHistory() {
         acc[normalizeStatus(status)] += 1;
         return acc;
       },
-      { pending: 0, approved: 0, declined: 0, reversed: 0 }
+      { pending: 0, audit: 0, approved: 0, declined: 0, reversed: 0 }
     );
   }, [requests, transactions]);
 
@@ -256,6 +289,21 @@ export default function TransactionsHistory() {
     }
   };
 
+  const handleSendRequestToAudit = async (request: any) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await apiRequest(`/transactions/requests/${request.id}/status`, {
+        method: 'PUT',
+        bodyData: { status: 'audit_review' },
+      });
+      setSuccessMsg('Solicitud enviada a AML.');
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al enviar la solicitud a AML.');
+    }
+  };
+
   const handleCancelRequest = async (request: any) => {
     if (!window.confirm('Deseas cancelar esta solicitud y liberar el saldo reservado?')) return;
 
@@ -296,10 +344,158 @@ export default function TransactionsHistory() {
     }
   };
 
+  const handleUpdateTransactionStatus = async (transaction: any, status: string) => {
+    const labels: Record<string, string> = {
+      audit_review: 'enviar esta transacción a AML',
+      completed: 'aprobar esta transacción',
+      failed: 'declinar esta transacción',
+    };
+    if (!window.confirm(`Deseas ${labels[status] || 'actualizar esta transacción'}?`)) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await apiRequest(`/transactions/${transaction.id}/status`, {
+        method: 'PUT',
+        bodyData: {
+          status,
+          notes: labels[status] || `Estado actualizado a ${status}`,
+        },
+      });
+      setSuccessMsg('Estado de transacción actualizado correctamente.');
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al actualizar la transacción.');
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedRows.length === 0) return;
+    const requestRows = selectedRows.filter((row) => row.source === 'request' && ['pending', 'processing', 'audit_review'].includes(row.status));
+    const transactionRows = selectedRows.filter((row) => row.source === 'transaction' && ['pending', 'processing', 'audit_review'].includes(row.status));
+
+    if (requestRows.length === 1 && transactionRows.length === 0) {
+      await openProcessModal(requestRows[0].raw);
+      return;
+    }
+
+    if (requestRows.length > 0) {
+      setErrorMsg('Para aprobar solicitudes, selecciona una sola solicitud y confirma sus datos en el modal.');
+      return;
+    }
+
+    if (!window.confirm(`Deseas aprobar ${transactionRows.length} transaccion(es) seleccionada(s)?`)) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      for (const row of transactionRows) {
+        await apiRequest(`/transactions/${row.id}/status`, {
+          method: 'PUT',
+          bodyData: { status: 'completed', notes: 'Aprobada desde seleccion masiva' },
+        });
+      }
+      setSuccessMsg('Transacciones aprobadas correctamente.');
+      setSelectedRowIds([]);
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al aprobar las transacciones seleccionadas.');
+    }
+  };
+
+  const handleBulkDecline = async () => {
+    const actionableRows = selectedRows.filter((row) => ['pending', 'processing', 'audit_review'].includes(row.status));
+    if (actionableRows.length === 0) return;
+    if (!window.confirm(`Deseas declinar ${actionableRows.length} operacion(es) seleccionada(s)?`)) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      for (const row of actionableRows) {
+        if (row.source === 'request') {
+          await apiRequest(`/transactions/requests/${row.id}/status`, {
+            method: 'PUT',
+            bodyData: { status: 'rejected' },
+          });
+        } else {
+          await apiRequest(`/transactions/${row.id}/status`, {
+            method: 'PUT',
+            bodyData: { status: 'failed', notes: 'Declinada desde seleccion masiva' },
+          });
+        }
+      }
+      setSuccessMsg('Operaciones declinadas correctamente.');
+      setSelectedRowIds([]);
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al declinar las operaciones seleccionadas.');
+    }
+  };
+
+  const handleBulkSendToAml = async () => {
+    const actionableRows = selectedRows.filter((row) => row.status !== 'audit_review' && row.status !== 'reversed');
+    if (actionableRows.length === 0) return;
+    if (!window.confirm(`Deseas enviar ${actionableRows.length} operacion(es) a AML/PLD?`)) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      for (const row of actionableRows) {
+        if (row.source === 'request') {
+          await apiRequest(`/transactions/requests/${row.id}/status`, {
+            method: 'PUT',
+            bodyData: { status: 'audit_review' },
+          });
+        } else {
+          await apiRequest(`/transactions/${row.id}/status`, {
+            method: 'PUT',
+            bodyData: { status: 'audit_review', notes: 'Enviada a AML/PLD desde seleccion masiva' },
+          });
+        }
+      }
+      setSuccessMsg('Operaciones enviadas a AML/PLD.');
+      setSelectedRowIds([]);
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al enviar operaciones a AML/PLD.');
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    const cancellableRows = selectedRows.filter((row) => row.source === 'request' && ['pending', 'processing'].includes(row.status));
+    if (cancellableRows.length === 0) return;
+    if (!window.confirm(`Deseas cancelar ${cancellableRows.length} solicitud(es) seleccionada(s)?`)) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      for (const row of cancellableRows) {
+        await apiRequest(`/transactions/requests/${row.id}/cancel`, { method: 'PUT' });
+      }
+      setSuccessMsg('Solicitudes canceladas correctamente.');
+      setSelectedRowIds([]);
+      await fetchData();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al cancelar las solicitudes seleccionadas.');
+    }
+  };
+
+  const handleBulkRevert = () => {
+    const reversibleRows = selectedRows.filter((row) => row.source === 'transaction' && row.status === 'completed');
+    if (reversibleRows.length !== 1) {
+      setErrorMsg('Selecciona una sola transaccion aprobada para revertirla.');
+      return;
+    }
+    setRevertTx(reversibleRows[0].raw);
+    setRevertNotes('');
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
+
   const renderActions = (row: any) => {
     if (!canManage) return null;
 
-    if (row.source === 'request' && ['pending', 'processing'].includes(row.status)) {
+    if (row.source === 'request' && ['pending', 'processing', 'audit_review'].includes(row.status)) {
       return (
         <div className="flex items-center justify-end gap-2">
           <button
@@ -316,32 +512,74 @@ export default function TransactionsHistory() {
             <Ban size={14} />
             Declinar
           </button>
-          <button
-            onClick={() => handleCancelRequest(row.raw)}
-            className="h-9 px-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
-          >
-            <XCircle size={14} />
-            Cancelar
-          </button>
+          {row.status !== 'audit_review' && (
+            <button
+              onClick={() => handleSendRequestToAudit(row.raw)}
+              title="Enviar a bandeja AML/PLD"
+              className="h-9 px-3 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 border border-sky-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <Eye size={14} />
+              AML
+            </button>
+          )}
+          {canCancel && (
+            <button
+              onClick={() => handleCancelRequest(row.raw)}
+              className="h-9 px-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <XCircle size={14} />
+              Cancelar
+            </button>
+          )}
         </div>
       );
     }
 
-    if (row.source === 'transaction' && row.status === 'completed') {
+    if (row.source === 'transaction') {
       return (
-        <div className="flex items-center justify-end">
-          <button
-            onClick={() => {
-              setRevertTx(row.raw);
-              setRevertNotes('');
-              setErrorMsg(null);
-              setSuccessMsg(null);
-            }}
-            className="h-9 px-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 border border-orange-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
-          >
-            <RotateCcw size={14} />
-            Revertir
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          {['pending', 'processing', 'audit_review'].includes(row.status) && (
+            <>
+              <button
+                onClick={() => handleUpdateTransactionStatus(row.raw, 'completed')}
+                className="h-9 px-3 bg-[#2ABFA3] hover:bg-[#209d85] text-slate-950 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <CheckCircle size={14} />
+                Aprobar
+              </button>
+              <button
+                onClick={() => handleUpdateTransactionStatus(row.raw, 'failed')}
+                className="h-9 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-200 border border-red-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Ban size={14} />
+                Declinar
+              </button>
+            </>
+          )}
+          {row.status !== 'audit_review' && row.status !== 'reversed' && (
+            <button
+              onClick={() => handleUpdateTransactionStatus(row.raw, 'audit_review')}
+              title="Enviar a bandeja AML/PLD"
+              className="h-9 px-3 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 border border-sky-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <Eye size={14} />
+              AML
+            </button>
+          )}
+          {row.status === 'completed' && (
+            <button
+              onClick={() => {
+                setRevertTx(row.raw);
+                setRevertNotes('');
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className="h-9 px-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 border border-orange-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <RotateCcw size={14} />
+              Revertir
+            </button>
+          )}
         </div>
       );
     }
@@ -433,29 +671,55 @@ export default function TransactionsHistory() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[1180px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
+                  {(canManage || user?.role === 'cliente') && (
+                    <th className="px-6 py-4 w-12">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisible}
+                        className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-[#2ABFA3]"
+                        aria-label="Seleccionar todas las operaciones visibles"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-4">Fecha</th>
                   <th className="px-6 py-4">Referencia</th>
+                  <th className="px-6 py-4 text-center">Estado</th>
                   <th className="px-6 py-4">Cliente</th>
                   <th className="px-6 py-4">Tipo</th>
                   <th className="px-6 py-4">Origen</th>
                   <th className="px-6 py-4">Destinatario</th>
                   <th className="px-6 py-4 text-right">Monto</th>
-                  <th className="px-6 py-4 text-center">Estado</th>
-                  {(canManage || user?.role === 'cliente') && <th className="px-6 py-4 text-right">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80">
                 {rows.map((row) => (
                   <tr key={`${row.source}-${row.id}`} className="hover:bg-slate-800/20 transition-colors">
+                    {(canManage || user?.role === 'cliente') && (
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowIds.includes(rowKey(row))}
+                          onChange={() => toggleRowSelection(row)}
+                          className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-[#2ABFA3]"
+                          aria-label={`Seleccionar ${row.reference || row.tracking_code}`}
+                        />
+                      </td>
+                    )}
                     <td className="px-6 py-4 text-slate-300 whitespace-nowrap">
                       {new Date(row.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-mono text-white block">{row.tracking_code || row.reference}</span>
                       <span className="text-xs text-slate-300 block capitalize">{row.source === 'request' ? 'Solicitud' : 'Transaccion'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusClasses(row.status)}`}>
+                        {statusLabel(row.status)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-slate-200 block">{row.client_name || (user?.role === 'cliente' ? user.name : 'Interno')}</span>
@@ -467,20 +731,70 @@ export default function TransactionsHistory() {
                     <td className="px-6 py-4 text-right font-black text-[#2ABFA3] whitespace-nowrap">
                       {parseFloat(row.amount).toLocaleString()} {row.currency}
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusClasses(row.status)}`}>
-                        {statusLabel(row.status)}
-                      </span>
-                    </td>
-                    {(canManage || user?.role === 'cliente') && (
-                      <td className="px-6 py-4 text-right whitespace-nowrap">
-                        {canManage ? renderActions(row) : renderClientActions(row)}
-                      </td>
-                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {(canManage || user?.role === 'cliente') && (
+          <div className="border-t border-slate-800 bg-slate-950/40 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="text-xs text-slate-300 font-bold">
+              {selectedRows.length > 0
+                ? `${selectedRows.length} operacion(es) seleccionada(s)`
+                : 'Selecciona una o varias operaciones para habilitar acciones.'}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {canManage && (
+                <>
+                  <button
+                    onClick={handleBulkApprove}
+                    disabled={selectedRows.length === 0}
+                    className="h-10 px-4 bg-[#2ABFA3] hover:bg-[#209d85] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 rounded-xl text-xs font-extrabold flex items-center gap-1.5"
+                  >
+                    <CheckCircle size={14} />
+                    Aprobar
+                  </button>
+                  <button
+                    onClick={handleBulkDecline}
+                    disabled={selectedRows.length === 0}
+                    className="h-10 px-4 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-red-200 border border-red-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5"
+                  >
+                    <Ban size={14} />
+                    Declinar
+                  </button>
+                  <button
+                    onClick={handleBulkSendToAml}
+                    disabled={selectedRows.length === 0}
+                    title="Enviar seleccionadas a bandeja AML/PLD"
+                    className="h-10 px-4 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-sky-200 border border-sky-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5"
+                  >
+                    <Eye size={14} />
+                    AML
+                  </button>
+                  <button
+                    onClick={handleBulkRevert}
+                    disabled={selectedRows.length === 0}
+                    className="h-10 px-4 bg-orange-500/10 hover:bg-orange-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-orange-200 border border-orange-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5"
+                  >
+                    <RotateCcw size={14} />
+                    Revertir
+                  </button>
+                </>
+              )}
+              {(canCancel || user?.role === 'cliente') && (
+                <button
+                  onClick={handleBulkCancel}
+                  disabled={selectedRows.length === 0}
+                  className="h-10 px-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white border border-slate-700 rounded-xl text-xs font-extrabold flex items-center gap-1.5"
+                >
+                  <XCircle size={14} />
+                  Cancelar
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

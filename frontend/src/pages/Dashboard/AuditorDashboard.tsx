@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { 
-  ShieldAlert, RefreshCw, CheckCircle, AlertCircle, X, Search, FileText, Settings
+  ShieldAlert, RefreshCw, CheckCircle, AlertCircle, X, Settings
 } from 'lucide-react';
 
 export default function AuditorDashboard() {
@@ -24,6 +24,7 @@ export default function AuditorDashboard() {
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
   const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
   const [reviewStatus, setReviewStatus] = useState<string>('reviewed');
+  const [resolutionAction, setResolutionAction] = useState<string>('none');
   const [reviewerComment, setReviewerComment] = useState<string>('');
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
 
@@ -67,6 +68,7 @@ export default function AuditorDashboard() {
         method: 'POST',
         bodyData: {
           status: reviewStatus,
+          resolutionAction,
           comment: reviewerComment
         }
       });
@@ -74,6 +76,7 @@ export default function AuditorDashboard() {
       setSuccessMsg('Alerta de cumplimiento AML resuelta con éxito.');
       setShowReviewModal(false);
       setSelectedAlert(null);
+      setResolutionAction('none');
       setReviewerComment('');
       fetchAlertsAndRules();
     } catch (err: any) {
@@ -84,12 +87,30 @@ export default function AuditorDashboard() {
   };
 
   const getAlertLabel = (code: string) => {
+    if (code === 'manual_review') return 'Revision manual solicitada';
     const labels: Record<string, string> = {
       threshold_amount: 'Envío de alto valor unitario',
       structuring: 'Fraccionamiento / Estructuración',
       new_client_high_value: 'Primer envío de alto monto (Cliente Nuevo)'
     };
     return labels[code] || code;
+  };
+
+  const getReviewActionOptions = (alert: any) => {
+    if (alert.client_request_id) {
+      return [
+        { value: 'none', label: 'Solo documentar auditoria' },
+        { value: 'approve', label: 'Aprobar solicitud y crear transaccion' },
+        { value: 'decline', label: 'Declinar solicitud y liberar reserva' },
+      ];
+    }
+
+    return [
+      { value: 'none', label: 'Solo documentar auditoria' },
+      { value: 'approve', label: 'Aprobar transaccion' },
+      { value: 'decline', label: 'Declinar transaccion' },
+      { value: 'revert', label: 'Revertir transaccion completada' },
+    ];
   };
 
   return (
@@ -224,7 +245,9 @@ export default function AuditorDashboard() {
                       <tr key={a.id} className="hover:bg-slate-800/20 text-xs">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-extrabold text-white block">{getAlertLabel(a.rule_code)}</span>
-                          <span className="text-[10px] text-slate-300 block font-mono">Remesa: {a.tracking_code}</span>
+                          <span className="text-[10px] text-slate-300 block font-mono">
+                            {a.transaction_id ? `Remesa: ${a.tracking_code}` : `Solicitud: #${a.client_request_id?.slice(0, 8)}`}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-slate-300 block">{a.client_name}</span>
@@ -247,6 +270,9 @@ export default function AuditorDashboard() {
                             <button 
                               onClick={() => {
                                 setSelectedAlert(a);
+                                setResolutionAction('none');
+                                setReviewStatus('reviewed');
+                                setReviewerComment('');
                                 setShowReviewModal(true);
                               }}
                               className="px-3 h-8 bg-[#2ABFA3] hover:bg-[#209d85] text-slate-900 font-bold rounded-lg text-xs cursor-pointer flex items-center justify-center"
@@ -291,6 +317,7 @@ export default function AuditorDashboard() {
                 <p className="text-slate-300 text-xs">Regla: <strong className="text-white">{getAlertLabel(selectedAlert.rule_code)}</strong></p>
                 <p className="text-slate-300 text-xs">Monto gatillado: <strong className="text-orange-400">$ {parseFloat(selectedAlert.triggered_amount_usd).toLocaleString()} USD</strong></p>
                 <p className="text-slate-300 text-xs">Cliente: <strong className="text-white">{selectedAlert.client_name}</strong></p>
+                <p className="text-slate-300 text-xs">Origen del caso: <strong className="text-white">{selectedAlert.client_request_id ? 'Solicitud de cliente' : 'Transaccion'}</strong></p>
               </div>
 
               <div>
@@ -302,6 +329,24 @@ export default function AuditorDashboard() {
                 >
                   <option value="reviewed">Revisada (Operación Legítima Confirmada)</option>
                   <option value="dismissed">Descartada (Falso Positivo / Error)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Accion Operativa</label>
+                <select
+                  value={resolutionAction}
+                  onChange={(e) => {
+                    const nextAction = e.target.value;
+                    setResolutionAction(nextAction);
+                    if (nextAction === 'decline') setReviewStatus('dismissed');
+                    if (nextAction === 'approve' || nextAction === 'revert') setReviewStatus('reviewed');
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white cursor-pointer focus:outline-none focus:border-[#2ABFA3]"
+                >
+                  {getReviewActionOptions(selectedAlert).map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </div>
 
