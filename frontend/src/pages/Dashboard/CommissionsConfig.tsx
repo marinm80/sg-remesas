@@ -166,7 +166,7 @@ export default function CommissionsConfig() {
             <Percent className="text-[#2ABFA3]" size={20} />
             Configuración de Comisiones y Tramos
           </h2>
-          <p className="text-slate-400 text-sm mt-0.5">Define comisiones por divisas, tramos de incentivo y variables de balance.</p>
+          <p className="text-slate-300 text-sm mt-0.5">Define comisiones por divisas, tramos de incentivo y variables de balance.</p>
         </div>
 
         {isAdmin && (
@@ -210,12 +210,12 @@ export default function CommissionsConfig() {
           
           {/* Left: Currency Pairs Rules */}
           <div className="lg:col-span-8 space-y-6">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Reglas Activas por Monedas</h3>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Reglas Activas por Monedas</h3>
             
             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                  <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                     <th className="px-6 py-4">Par Divisas</th>
                     <th className="px-6 py-4 text-center">Tasa %</th>
                     <th className="px-6 py-4 text-right">Monto Mínimo</th>
@@ -226,7 +226,7 @@ export default function CommissionsConfig() {
                 <tbody className="divide-y divide-slate-800/80">
                   {rules.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-500 text-xs">No hay reglas de par configuradas. Se usarán valores globales.</td>
+                      <td colSpan={5} className="p-8 text-center text-slate-300 text-xs">No hay reglas de par configuradas. Se usarán valores globales.</td>
                     </tr>
                   ) : (
                     rules.map((rule) => (
@@ -244,7 +244,7 @@ export default function CommissionsConfig() {
                           {rule.is_active ? (
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#2ABFA3]/15 text-[#2ABFA3] border border-[#2ABFA3]/20">Activa</span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-500 border border-slate-700">Inactiva</span>
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-700">Inactiva</span>
                           )}
                         </td>
                         {isAdmin && (
@@ -267,11 +267,11 @@ export default function CommissionsConfig() {
             </div>
 
             {/* Operator Commission Tiers */}
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tramos de Incentivos de Operadores</h3>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Tramos de Incentivos de Operadores</h3>
             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                  <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                     <th className="px-6 py-4">Límite Mínimo (USD)</th>
                     <th className="px-6 py-4">Límite Máximo (USD)</th>
                     <th className="px-6 py-4 text-center">Incentivo %</th>
@@ -283,7 +283,7 @@ export default function CommissionsConfig() {
                 <tbody className="divide-y divide-slate-800/80">
                   {tiers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500 text-xs">No hay tramos de incentivo configurados.</td>
+                      <td colSpan={6} className="p-8 text-center text-slate-300 text-xs">No hay tramos de incentivo configurados.</td>
                     </tr>
                   ) : (
                     tiers.map((tier) => (
@@ -295,14 +295,14 @@ export default function CommissionsConfig() {
                         <td className="px-6 py-4 text-center font-bold text-[#2ABFA3] font-mono">
                           {(parseFloat(tier.rate_percent)).toFixed(2)} %
                         </td>
-                        <td className="px-6 py-4 text-slate-400 text-xs">
+                        <td className="px-6 py-4 text-slate-300 text-xs">
                           {tier.operator_id ? 'Personalizado (ID)' : 'Global'}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {tier.is_active ? (
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#2ABFA3]/15 text-[#2ABFA3] border border-[#2ABFA3]/20">Activo</span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-500 border border-slate-700">Inactivo</span>
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-700">Inactivo</span>
                           )}
                         </td>
                         {isAdmin && (
@@ -327,14 +327,14 @@ export default function CommissionsConfig() {
 
           {/* Right: Global variables settings */}
           <div className="lg:col-span-4 space-y-6">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Parámetros Globales (Config)</h3>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Parámetros Globales (Config)</h3>
 
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4">
               {configs.map((c) => (
                 <div key={c.id} className="flex justify-between items-start py-2.5 border-b border-slate-800/60 last:border-0 text-xs">
                   <div className="space-y-1 pr-4">
                     <span className="font-bold text-white font-mono">{c.key}</span>
-                    <span className="text-[10px] text-slate-500 block">Actualizado por: {c.updater_name || 'Sistema'}</span>
+                    <span className="text-[10px] text-slate-300 block">Actualizado por: {c.updater_name || 'Sistema'}</span>
                   </div>
                   <div className="text-right space-y-1">
                     <span className="font-mono text-[#2ABFA3] font-bold text-sm block">{c.value}</span>
@@ -345,7 +345,7 @@ export default function CommissionsConfig() {
                           setConfigValue(c.value);
                           setShowConfigModal(true);
                         }}
-                        className="text-[10px] text-slate-400 hover:text-white font-bold"
+                        className="text-[10px] text-slate-300 hover:text-white font-bold"
                       >
                         Editar
                       </button>
@@ -369,7 +369,7 @@ export default function CommissionsConfig() {
               </h3>
               <button 
                 onClick={() => setShowRuleModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 X
               </button>
@@ -378,7 +378,7 @@ export default function CommissionsConfig() {
             <form onSubmit={handleCreateRule} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Moneda Origen</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Moneda Origen</label>
                   <select 
                     value={currencyFrom}
                     onChange={(e) => setCurrencyFrom(e.target.value)}
@@ -393,7 +393,7 @@ export default function CommissionsConfig() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Moneda Destino</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Moneda Destino</label>
                   <select 
                     value={currencyTo}
                     onChange={(e) => setCurrencyTo(e.target.value)}
@@ -409,7 +409,7 @@ export default function CommissionsConfig() {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Tasa Porcentual (%)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Tasa Porcentual (%)</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -422,7 +422,7 @@ export default function CommissionsConfig() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Comisión Mínima Fija</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Comisión Mínima Fija</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -434,7 +434,7 @@ export default function CommissionsConfig() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Divisa Mínima Fija</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Divisa Mínima Fija</label>
                   <select 
                     value={minFixedCurrency}
                     onChange={(e) => setMinFixedCurrency(e.target.value)}
@@ -470,7 +470,7 @@ export default function CommissionsConfig() {
               </h3>
               <button 
                 onClick={() => setShowTierModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 X
               </button>
@@ -478,7 +478,7 @@ export default function CommissionsConfig() {
 
             <form onSubmit={handleCreateTier} className="space-y-4 text-sm">
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">ID Operador (Vacío para Global)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">ID Operador (Vacío para Global)</label>
                 <input 
                   type="text" 
                   value={operatorId}
@@ -490,7 +490,7 @@ export default function CommissionsConfig() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Monto Mínimo (USD)</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Monto Mínimo (USD)</label>
                   <input 
                     type="number" 
                     required
@@ -501,7 +501,7 @@ export default function CommissionsConfig() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Monto Máximo (USD)</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Monto Máximo (USD)</label>
                   <input 
                     type="number" 
                     value={maxAmountUsd}
@@ -513,7 +513,7 @@ export default function CommissionsConfig() {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Incentivo del tramo (%)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Incentivo del tramo (%)</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -546,7 +546,7 @@ export default function CommissionsConfig() {
               </h3>
               <button 
                 onClick={() => setShowConfigModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 X
               </button>
@@ -554,17 +554,17 @@ export default function CommissionsConfig() {
 
             <form onSubmit={handleUpdateConfig} className="space-y-4 text-sm">
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Clave de Configuración</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Clave de Configuración</label>
                 <input 
                   type="text" 
                   disabled
                   value={configKey}
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 font-mono"
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Valor de Configuración</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Valor de Configuración</label>
                 <input 
                   type="text" 
                   required

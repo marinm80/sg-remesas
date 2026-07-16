@@ -41,12 +41,12 @@ export default function AuditLogs() {
             <FileText className="text-[#2ABFA3]" size={20} />
             Historial de Auditoría
           </h2>
-          <p className="text-slate-400 text-sm mt-0.5">Logs inmutables de cambios de estado y operaciones registradas (RF-42).</p>
+          <p className="text-slate-300 text-sm mt-0.5">Logs inmutables de cambios de estado y operaciones registradas (RF-42).</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold text-xs uppercase">Desde:</span>
+            <span className="text-slate-300 font-bold text-xs uppercase">Desde:</span>
             <input 
               type="date"
               value={startDate}
@@ -56,7 +56,7 @@ export default function AuditLogs() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold text-xs uppercase">Hasta:</span>
+            <span className="text-slate-300 font-bold text-xs uppercase">Hasta:</span>
             <input 
               type="date"
               value={endDate}
@@ -81,14 +81,14 @@ export default function AuditLogs() {
             <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-sm">
+          <div className="p-12 text-center text-slate-300 text-sm">
             No se encontraron logs de auditoría en el rango de fechas seleccionado.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                   <th className="px-6 py-4">Fecha</th>
                   <th className="px-6 py-4">Código Remesa</th>
                   <th className="px-6 py-4">Acción / Estado</th>
@@ -99,7 +99,7 @@ export default function AuditLogs() {
               <tbody className="divide-y divide-slate-800/80">
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-800/20 transition-colors text-xs">
-                    <td className="px-6 py-4 text-slate-400 whitespace-nowrap">
+                    <td className="px-6 py-4 text-slate-300 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap font-mono font-bold text-white">
@@ -109,8 +109,8 @@ export default function AuditLogs() {
                       <div className="flex items-center gap-1">
                         {log.previous_status ? (
                           <>
-                            <span className="text-slate-500 font-semibold">{log.previous_status}</span>
-                            <span className="text-slate-600">→</span>
+                            <span className="text-slate-300 font-semibold">{log.previous_status}</span>
+                            <span className="text-slate-300">→</span>
                             <span className="text-[#2ABFA3] font-bold">{log.new_status}</span>
                           </>
                         ) : (
@@ -120,9 +120,9 @@ export default function AuditLogs() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-slate-350 block font-semibold">{log.performed_by_name || 'Automático'}</span>
-                      <span className="text-[10px] text-slate-500 block">{log.performed_by_email || 'system'}</span>
+                      <span className="text-[10px] text-slate-300 block">{log.performed_by_email || 'system'}</span>
                     </td>
-                    <td className="px-6 py-4 text-slate-400 leading-relaxed font-sans max-w-sm">
+                    <td className="px-6 py-4 text-slate-300 leading-relaxed font-sans max-w-sm">
                       {log.action_description}
                     </td>
                   </tr>

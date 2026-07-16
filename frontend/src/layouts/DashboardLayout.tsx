@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore.js';
 import { apiRequest } from '../services/api.js';
 import { 
   LogOut, Bell, User, LayoutDashboard, Users, Percent, ShieldAlert, 
-  FileText, ClipboardList, HelpCircle, UserCheck, Inbox, AlertTriangle
+  FileText, ClipboardList, HelpCircle, UserCheck, Inbox, AlertTriangle, Send
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -87,6 +87,7 @@ export default function DashboardLayout() {
       case 'admin':
         return [
           { name: 'Dashboard', path: '/dashboard/admin', icon: LayoutDashboard },
+          { name: 'Transacciones', path: '/dashboard/transactions', icon: Send },
           { name: 'Usuarios', path: '/dashboard/users', icon: Users },
           { name: 'Comisiones y Tramos', path: '/dashboard/commissions', icon: Percent },
           { name: 'Log de Auditoría', path: '/dashboard/audit-logs', icon: FileText },
@@ -95,6 +96,7 @@ export default function DashboardLayout() {
       case 'operador':
         return [
           { name: 'Bandeja de Operaciones', path: '/dashboard/operator', icon: Inbox },
+          { name: 'Transacciones', path: '/dashboard/transactions', icon: Send },
           { name: 'Usuarios', path: '/dashboard/users', icon: Users },
           { name: 'Solicitudes Clientes', path: '/dashboard/requests', icon: ClipboardList },
           { name: 'Soporte y Tickets', path: '/dashboard/tickets-management', icon: HelpCircle },
@@ -110,6 +112,7 @@ export default function DashboardLayout() {
       default:
         return [
           { name: 'Cuentas y Saldos', path: '/dashboard/client', icon: LayoutDashboard },
+          { name: 'Transacciones', path: '/dashboard/transactions', icon: Send },
           { name: 'Destinatarios', path: '/dashboard/beneficiaries', icon: UserCheck },
           { name: 'Soporte Técnico', path: '/dashboard/tickets', icon: HelpCircle },
         ];

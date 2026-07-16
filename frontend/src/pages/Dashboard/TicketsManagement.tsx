@@ -99,9 +99,9 @@ export default function TicketsManagement() {
       open: { text: 'Abierto', classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' },
       in_review: { text: 'En Revisión', classes: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/25' },
       resolved: { text: 'Resuelto', classes: 'bg-blue-500/10 text-blue-400 border-blue-500/25' },
-      closed: { text: 'Cerrado', classes: 'bg-slate-800 text-slate-400 border-slate-700' }
+      closed: { text: 'Cerrado', classes: 'bg-slate-800 text-slate-300 border-slate-700' }
     };
-    const item = maps[status] || { text: status, classes: 'bg-slate-800 text-slate-400' };
+    const item = maps[status] || { text: status, classes: 'bg-slate-800 text-slate-300' };
     return (
       <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${item.classes}`}>
         {item.text}
@@ -122,7 +122,7 @@ export default function TicketsManagement() {
           {/* Filters Form */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Estado</label>
+              <label className="text-[10px] text-slate-300 font-bold block mb-1">Estado</label>
               <select 
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -137,7 +137,7 @@ export default function TicketsManagement() {
             </div>
 
             <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Categoría</label>
+              <label className="text-[10px] text-slate-300 font-bold block mb-1">Categoría</label>
               <select 
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -152,7 +152,7 @@ export default function TicketsManagement() {
             </div>
 
             <div className="col-span-2">
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Email Cliente</label>
+              <label className="text-[10px] text-slate-300 font-bold block mb-1">Email Cliente</label>
               <input 
                 type="text"
                 placeholder="juan@ejemplo.com"
@@ -171,7 +171,7 @@ export default function TicketsManagement() {
         ) : (
           <div className="space-y-3">
             {tickets.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-3xl text-xs">
+              <div className="p-8 text-center text-slate-300 bg-slate-900 border border-slate-800 rounded-3xl text-xs">
                 No hay tickets que coincidan con los filtros.
               </div>
             ) : (
@@ -189,8 +189,8 @@ export default function TicketsManagement() {
                     <h4 className="font-extrabold text-white text-sm line-clamp-1">{t.subject}</h4>
                     {getStatusLabel(t.status)}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">De: {t.client_name} ({t.client_email})</p>
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 mt-3 font-semibold">
+                  <p className="text-[11px] text-slate-300 mt-1">De: {t.client_name} ({t.client_email})</p>
+                  <div className="flex justify-between items-center text-[10px] text-slate-300 mt-3 font-semibold">
                     <span>Categoría: {t.category}</span>
                     <span>Modificado: {new Date(t.updated_at).toLocaleDateString()}</span>
                   </div>
@@ -204,7 +204,7 @@ export default function TicketsManagement() {
       {/* Right Ticket Thread View */}
       <div className={`${selectedTicket ? 'block' : 'hidden lg:block'} lg:col-span-7 space-y-6`}>
         {!selectedTicket ? (
-          <div className="h-64 border border-slate-800 border-dashed rounded-3xl flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+          <div className="h-64 border border-slate-800 border-dashed rounded-3xl flex flex-col items-center justify-center text-slate-300 text-sm gap-2">
             <MessageSquare size={32} />
             Selecciona un ticket para responder.
           </div>
@@ -220,7 +220,7 @@ export default function TicketsManagement() {
                   ← Volver a la lista
                 </button>
                 <h3 className="font-extrabold text-white text-base leading-tight">{selectedTicket.subject}</h3>
-                <span className="text-[10px] font-bold text-slate-500 uppercase mt-0.5 block">
+                <span className="text-[10px] font-bold text-slate-300 uppercase mt-0.5 block">
                   Cliente: {selectedTicket.client_name} ({selectedTicket.client_email})
                 </span>
               </div>
@@ -256,7 +256,7 @@ export default function TicketsManagement() {
                       className={`flex flex-col max-w-[85%] ${isOwn ? 'ml-auto items-end' : 'mr-auto items-start'}`}
                     >
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-[10px] font-bold text-slate-400">{m.author_name}</span>
+                        <span className="text-[10px] font-bold text-slate-300">{m.author_name}</span>
                         {isOwn && (
                           <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#2ABFA3]/15 text-[#2ABFA3] uppercase">
                             Soporte
@@ -270,7 +270,7 @@ export default function TicketsManagement() {
                       }`}>
                         {m.body}
                       </div>
-                      <span className="text-[9px] text-slate-500 mt-1 font-mono">
+                      <span className="text-[9px] text-slate-300 mt-1 font-mono">
                         {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>

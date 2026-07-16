@@ -238,12 +238,12 @@ export default function UsersManagement() {
                 <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
               </div>
             ) : internalUsers.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 text-sm">No hay usuarios internos registrados.</div>
+              <div className="p-12 text-center text-slate-300 text-sm">No hay usuarios internos registrados.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                    <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                       <th className="px-6 py-4">Usuario</th>
                       <th className="px-6 py-4">Rol</th>
                       <th className="px-6 py-4 text-center">Estado</th>
@@ -258,7 +258,7 @@ export default function UsersManagement() {
                         <tr key={u.id} className="hover:bg-slate-800/20 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="font-bold text-white block">{u.name}</span>
-                            <span className="text-xs text-slate-500 block">{u.email}</span>
+                            <span className="text-xs text-slate-300 block">{u.email}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {editingUserId === u.id ? (
@@ -281,7 +281,7 @@ export default function UsersManagement() {
                                 </button>
                                 <button
                                   onClick={() => setEditingUserId(null)}
-                                  className="text-xs text-slate-500 hover:text-white cursor-pointer"
+                                  className="text-xs text-slate-300 hover:text-white cursor-pointer"
                                 >
                                   <X size={14} />
                                 </button>
@@ -305,7 +305,7 @@ export default function UsersManagement() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             {isSystemAdmin ? (
-                              <span className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">Admin Principal</span>
+                              <span className="text-[10px] text-slate-300 uppercase tracking-wider font-bold">Admin Principal</span>
                             ) : isAdmin ? (
                               <div className="flex items-center justify-end gap-3">
                                 <button
@@ -345,13 +345,13 @@ export default function UsersManagement() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left: Pending KYC reviews */}
           <div className="lg:col-span-4 space-y-6">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <Layers className="text-[#2ABFA3]" size={16} />
               Revisiones KYC Pendientes ({kycPending.length})
             </h3>
             <div className="space-y-4">
               {kycPending.length === 0 ? (
-                <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-3xl text-slate-500 text-xs">
+                <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-3xl text-slate-300 text-xs">
                   No hay solicitudes de verificación KYC pendientes.
                 </div>
               ) : (
@@ -360,13 +360,13 @@ export default function UsersManagement() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-extrabold text-white text-sm">{doc.client_name}</h4>
-                        <span className="text-[10px] text-slate-500 block">{doc.client_email}</span>
+                        <span className="text-[10px] text-slate-300 block">{doc.client_email}</span>
                       </div>
                       <span className="px-2 py-0.5 rounded bg-[#2ABFA3]/15 text-[#2ABFA3] text-[9px] font-extrabold uppercase">
                         Nivel solicitado: {doc.level_requested}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-400 space-y-1">
+                    <div className="text-xs text-slate-300 space-y-1">
                       <p>Documento: <strong className="text-slate-300 capitalize">{doc.document_type}</strong></p>
                       <p>Fecha: <strong className="text-slate-300">{new Date(doc.submitted_at).toLocaleDateString()}</strong></p>
                     </div>
@@ -394,19 +394,19 @@ export default function UsersManagement() {
 
           {/* Right: Clients list */}
           <div className="lg:col-span-8 space-y-6">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Clientes Registrados</h3>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Clientes Registrados</h3>
             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
               {loading ? (
                 <div className="flex items-center justify-center py-20">
                   <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
                 </div>
               ) : clients.length === 0 ? (
-                <div className="p-12 text-center text-slate-500 text-sm">No hay clientes registrados aún.</div>
+                <div className="p-12 text-center text-slate-300 text-sm">No hay clientes registrados aún.</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                      <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                         <th className="px-6 py-4">Cliente</th>
                         <th className="px-6 py-4">País</th>
                         <th className="px-6 py-4">Teléfono</th>
@@ -419,16 +419,16 @@ export default function UsersManagement() {
                         <tr key={c.id} className="hover:bg-slate-800/20 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="font-bold text-white block">{c.name}</span>
-                            <span className="text-xs text-slate-500 block">{c.email}</span>
+                            <span className="text-xs text-slate-300 block">{c.email}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-slate-300 text-xs">{c.country || '—'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-slate-400 text-xs font-mono">{c.phone || '—'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-slate-300 text-xs font-mono">{c.phone || '—'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className="inline-flex items-center text-[11px] font-bold text-[#2ABFA3] uppercase bg-[#2ABFA3]/10 border border-[#2ABFA3]/20 px-2.5 py-0.5 rounded-full">
                               KYC-{c.kyc_level}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-slate-500 text-xs">
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-slate-300 text-xs">
                             {new Date(c.created_at).toLocaleDateString()}
                           </td>
                         </tr>
@@ -451,13 +451,13 @@ export default function UsersManagement() {
                 <Users className="text-[#2ABFA3]" size={18} />
                 Nuevo Miembro del Equipo
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-300 hover:text-white cursor-pointer">
                 <X size={16} />
               </button>
             </div>
             <form onSubmit={handleCreateInternalUser} className="space-y-4">
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Nombre Completo</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Nombre Completo</label>
                 <input
                   type="text" required value={name} onChange={(e) => setName(e.target.value)}
                   placeholder="Ej: Sofía López"
@@ -465,7 +465,7 @@ export default function UsersManagement() {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Correo electrónico corporativo</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Correo electrónico corporativo</label>
                 <input
                   type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                   placeholder="sofia@sgremesas.com"
@@ -473,7 +473,7 @@ export default function UsersManagement() {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Contraseña temporal</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Contraseña temporal</label>
                 <input
                   type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
@@ -482,7 +482,7 @@ export default function UsersManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Rol Operativo</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Rol Operativo</label>
                   <select
                     value={roleId} onChange={(e) => setRoleId(parseInt(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white cursor-pointer focus:outline-none focus:border-[#2ABFA3] text-sm"
@@ -522,18 +522,18 @@ export default function UsersManagement() {
                 <ShieldCheck className="text-[#2ABFA3]" size={18} />
                 Revisión de Documento KYC
               </h3>
-              <button onClick={() => setShowKycModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setShowKycModal(false)} className="text-slate-300 hover:text-white cursor-pointer">
                 <X size={16} />
               </button>
             </div>
             <form onSubmit={handleReviewKyc} className="space-y-4 text-sm">
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1">
-                <p className="text-slate-400 text-xs">Cliente: <strong className="text-white">{selectedKycDoc.client_name}</strong></p>
-                <p className="text-slate-400 text-xs">Email: <strong className="text-white">{selectedKycDoc.client_email}</strong></p>
-                <p className="text-slate-400 text-xs">Nivel Solicitado: <strong className="text-[#2ABFA3] font-bold">KYC-{selectedKycDoc.level_requested}</strong></p>
+                <p className="text-slate-300 text-xs">Cliente: <strong className="text-white">{selectedKycDoc.client_name}</strong></p>
+                <p className="text-slate-300 text-xs">Email: <strong className="text-white">{selectedKycDoc.client_email}</strong></p>
+                <p className="text-slate-300 text-xs">Nivel Solicitado: <strong className="text-[#2ABFA3] font-bold">KYC-{selectedKycDoc.level_requested}</strong></p>
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Calificación de Solicitud</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Calificación de Solicitud</label>
                 <select
                   value={kycStatus} onChange={(e) => setKycStatus(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white cursor-pointer focus:outline-none focus:border-[#2ABFA3]"
@@ -544,7 +544,7 @@ export default function UsersManagement() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Comentario para el cliente (obligatorio)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Comentario para el cliente (obligatorio)</label>
                 <textarea
                   required value={kycComment} onChange={(e) => setKycComment(e.target.value)}
                   placeholder="Ej: Cédula de identidad legible. Aprobada."

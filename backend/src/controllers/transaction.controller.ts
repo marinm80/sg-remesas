@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import Joi from 'joi';
+import pool from '../config/db.js';
 import * as transactionService from '../services/transaction.service.js';
 import * as transactionRepository from '../repositories/transaction.repository.js';
 import * as requestRepository from '../repositories/request.repository.js';
 import * as accountRepository from '../repositories/account.repository.js';
+import * as commissionService from '../services/commission.service.js';
 
 /**
  * Vista previa de comisiones y límites KYC para el simulador/formulario de envío (RF-18)
@@ -234,6 +236,7 @@ export async function createClientRequest(req: Request, res: Response): Promise<
   const user = (req as any).user;
   const schema = Joi.object({
     type: Joi.string().valid('remesa', 'retiro').required(),
+    accountOriginId: Joi.string().uuid().required(),
     amount: Joi.number().greater(0).required(),
     currency: Joi.string().length(3).uppercase().required(),
     destinationAccountInfo: Joi.object().required(),
@@ -248,15 +251,79 @@ export async function createClientRequest(req: Request, res: Response): Promise<
   }
 
   try {
-    const clientReq = await requestRepository.createRequest({
-      client_id: user.id,
-      type: value.type,
-      amount: value.amount,
-      currency: value.currency,
-      destination_account_info: value.destinationAccountInfo,
-      beneficiary: value.beneficiary,
-      notes: value.notes,
-    });
+    const originAccount = await accountRepository.findAccountById(value.accountOriginId);
+    if (!originAccount || originAccount.client_id !== user.id) {
+      res.status(400).json({ status: 'error', message: 'La cuenta origen no existe o no pertenece al cliente.' });
+      return;
+    }
+
+    if (!originAccount.is_active) {
+      res.status(400).json({ status: 'error', message: 'La cuenta origen estÃ¡ inactiva.' });
+      return;
+    }
+
+    if (originAccount.currency !== value.currency) {
+      res.status(400).json({ status: 'error', message: 'La moneda de la cuenta origen debe coincidir con la moneda de la solicitud.' });
+      return;
+    }
+
+    const commissionCalc = await commissionService.calculateCommission(
+      value.amount,
+      value.currency,
+      value.beneficiary?.currency || value.currency,
+      []
+    );
+    const amountToReserve = commissionCalc.totalCharged;
+
+    const availableBalance = parseFloat((originAccount.available_balance ?? originAccount.balance).toString());
+    if (availableBalance < amountToReserve) {
+      res.status(400).json({ status: 'error', message: 'La cuenta origen no tiene saldo suficiente para esta solicitud.' });
+      return;
+    }
+
+    const client = await pool.connect();
+    let clientReq: any;
+    try {
+      await client.query('BEGIN');
+
+      const lockedOriginAccount = await accountRepository.findAccountByIdForUpdate(value.accountOriginId, client);
+      if (!lockedOriginAccount || lockedOriginAccount.client_id !== user.id) {
+        throw new Error('La cuenta origen no existe o no pertenece al cliente.');
+      }
+
+      const lockedAvailableBalance = parseFloat((lockedOriginAccount.available_balance ?? lockedOriginAccount.balance).toString());
+      if (lockedAvailableBalance < amountToReserve) {
+        throw new Error('La cuenta origen no tiene saldo disponible suficiente para esta solicitud.');
+      }
+
+      await accountRepository.adjustReservedBalance(lockedOriginAccount.id, amountToReserve, client);
+
+      clientReq = await requestRepository.createRequest({
+        client_id: user.id,
+        type: value.type,
+        amount: value.amount,
+        currency: value.currency,
+        destination_account_info: {
+          ...value.destinationAccountInfo,
+          originAccountId: lockedOriginAccount.id,
+          originAccountName: lockedOriginAccount.name,
+          originAccountCurrency: lockedOriginAccount.currency,
+          reservedAmount: amountToReserve,
+          requestedAmount: value.amount,
+          commissionAmount: commissionCalc.commissionAmount,
+          totalCharged: commissionCalc.totalCharged,
+        },
+        beneficiary: value.beneficiary,
+        notes: value.notes,
+      }, client);
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
 
     res.status(201).json({
       status: 'ok',
@@ -306,18 +373,101 @@ export async function updateClientRequestStatus(req: Request, res: Response): Pr
   const id = req.params.id as string;
 
   try {
-    const clientReq = await requestRepository.findRequestById(id);
-    if (!clientReq) {
-      res.status(404).json({ status: 'error', message: 'Solicitud no encontrada' });
-      return;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const clientReq = await requestRepository.findRequestByIdForUpdate(id, client);
+      if (!clientReq) {
+        res.status(404).json({ status: 'error', message: 'Solicitud no encontrada' });
+        await client.query('ROLLBACK');
+        return;
+      }
+
+      if (!['pending', 'processing'].includes(clientReq.status)) {
+        res.status(400).json({ status: 'error', message: 'Solo se pueden actualizar solicitudes pendientes o en proceso.' });
+        await client.query('ROLLBACK');
+        return;
+      }
+
+      if (value.status === 'rejected') {
+        const originAccountId = clientReq.destination_account_info?.originAccountId;
+        const reservedAmount = parseFloat((clientReq.destination_account_info?.reservedAmount ?? clientReq.amount).toString());
+        if (originAccountId && reservedAmount > 0) {
+          await accountRepository.releaseReservedBalance(originAccountId, reservedAmount, client);
+        }
+      }
+
+      await requestRepository.updateRequestStatus(id, value.status, user.id, client);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
 
-    await requestRepository.updateRequestStatus(id, value.status, user.id);
     res.status(200).json({
       status: 'ok',
       message: `Solicitud marcada en estado ${value.status} correctamente.`,
     });
   } catch (err: any) {
     res.status(500).json({ status: 'error', message: err.message });
+  }
+}
+
+/**
+ * Cancela una solicitud pendiente/en proceso y libera el saldo reservado.
+ */
+export async function cancelClientRequest(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const id = req.params.id as string;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const clientReq = await requestRepository.findRequestByIdForUpdate(id, client);
+    if (!clientReq) {
+      res.status(404).json({ status: 'error', message: 'Solicitud no encontrada' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    const canCancel =
+      clientReq.client_id === user.id ||
+      user.role_name === 'admin' ||
+      user.role_name === 'operador';
+
+    if (!canCancel) {
+      res.status(403).json({ status: 'error', message: 'Acceso denegado' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    if (!['pending', 'processing'].includes(clientReq.status)) {
+      res.status(400).json({ status: 'error', message: 'Solo se pueden cancelar solicitudes pendientes o en proceso.' });
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    const originAccountId = clientReq.destination_account_info?.originAccountId;
+    const reservedAmount = parseFloat((clientReq.destination_account_info?.reservedAmount ?? clientReq.amount).toString());
+    if (originAccountId && reservedAmount > 0) {
+      await accountRepository.releaseReservedBalance(originAccountId, reservedAmount, client);
+    }
+
+    await requestRepository.updateRequestStatus(id, 'cancelled', user.id, client);
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      status: 'ok',
+      message: 'Solicitud cancelada y saldo reservado liberado correctamente.',
+    });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ status: 'error', message: err.message });
+  } finally {
+    client.release();
   }
 }

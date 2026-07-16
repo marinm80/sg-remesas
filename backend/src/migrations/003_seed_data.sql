@@ -59,7 +59,7 @@ ON CONFLICT DO NOTHING;
 -- Operador: Gestión diaria de transacciones, clientes y soporte
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 2, id FROM permissions WHERE code IN (
-    'transactions.view', 'transactions.create', 'transactions.status_change',
+    'transactions.view', 'transactions.create', 'transactions.status_change', 'transactions.revert',
     'clients.view', 'clients.create', 'clients.edit',
     'tickets.view', 'tickets.create', 'tickets.reply', 'tickets.close'
 )

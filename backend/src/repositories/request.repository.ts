@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import type { PoolClient } from 'pg';
 
 export interface ClientRequest {
   id: string;
@@ -26,7 +27,7 @@ export async function createRequest(req: {
   destination_account_info: any;
   beneficiary: any;
   notes?: string | null;
-}): Promise<ClientRequest> {
+}, clientTx?: PoolClient): Promise<ClientRequest> {
   const { client_id, type, amount, currency, destination_account_info, beneficiary, notes = null } = req;
   
   const query = `
@@ -44,7 +45,8 @@ export async function createRequest(req: {
     notes,
   ];
   
-  const result = await pool.query(query, values);
+  const executor = clientTx || pool;
+  const result = await executor.query(query, values);
   return result.rows[0];
 }
 
@@ -59,6 +61,21 @@ export async function findRequestById(id: string): Promise<any | null> {
     WHERE cr.id = $1;
   `;
   const result = await pool.query(query, [id]);
+  return result.rows.length ? result.rows[0] : null;
+}
+
+/**
+ * Busca una solicitud por ID bloqueando la fila dentro de una transacciÃ³n.
+ */
+export async function findRequestByIdForUpdate(id: string, clientTx: PoolClient): Promise<any | null> {
+  const query = `
+    SELECT cr.*, u.name as client_name, u.email as client_email
+    FROM client_requests cr
+    JOIN users u ON cr.client_id = u.id
+    WHERE cr.id = $1
+    FOR UPDATE;
+  `;
+  const result = await clientTx.query(query, [id]);
   return result.rows.length ? result.rows[0] : null;
 }
 
@@ -101,11 +118,17 @@ export async function findAllRequests(status?: string): Promise<any[]> {
 /**
  * Actualiza el estado de una solicitud
  */
-export async function updateRequestStatus(id: string, status: string, processedBy: string): Promise<void> {
+export async function updateRequestStatus(
+  id: string,
+  status: string,
+  processedBy: string,
+  clientTx?: PoolClient
+): Promise<void> {
   const query = `
     UPDATE client_requests
     SET status = $1, processed_by = $2, updated_at = CURRENT_TIMESTAMP
     WHERE id = $3;
   `;
-  await pool.query(query, [status, processedBy, id]);
+  const executor = clientTx || pool;
+  await executor.query(query, [status, processedBy, id]);
 }

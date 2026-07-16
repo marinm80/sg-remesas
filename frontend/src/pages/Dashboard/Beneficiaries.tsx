@@ -120,7 +120,7 @@ export default function Beneficiaries() {
             <UserCheck className="text-[#2ABFA3]" size={20} />
             Libreta de Destinatarios
           </h2>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <p className="text-slate-300 text-sm mt-0.5">
             Gestiona tus destinatarios frecuentes para agilizar tus envíos de remesas.
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function Beneficiaries() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {beneficiaries.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-3xl text-sm">
+            <div className="col-span-full py-12 text-center text-slate-300 bg-slate-900 border border-slate-800 rounded-3xl text-sm">
               No tienes ningún destinatario guardado en tu libreta. ¡Agrega uno nuevo!
             </div>
           ) : (
@@ -166,7 +166,7 @@ export default function Beneficiaries() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-extrabold text-white text-base leading-tight">{b.name}</h3>
-                    <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-1 uppercase">
+                    <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1 mt-1 uppercase">
                       <Globe size={10} />
                       {b.country} · {b.currency}
                     </span>
@@ -188,16 +188,16 @@ export default function Beneficiaries() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800 space-y-2 text-xs text-slate-400">
+                <div className="pt-2 border-t border-slate-800 space-y-2 text-xs text-slate-300">
                   <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1 text-[11px] text-slate-300">
                       <Landmark size={12} />
                       Banco:
                     </span>
                     <span className="font-semibold text-slate-300">{b.bank_name}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1 text-[11px] text-slate-300">
                       <DollarSign size={12} />
                       Nº Cuenta ({b.account_type}):
                     </span>
@@ -221,7 +221,7 @@ export default function Beneficiaries() {
               </h3>
               <button 
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -229,7 +229,7 @@ export default function Beneficiaries() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Nombre Completo</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Nombre Completo</label>
                 <input 
                   type="text" 
                   required
@@ -242,7 +242,7 @@ export default function Beneficiaries() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">País</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">País</label>
                   <select 
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
@@ -257,7 +257,7 @@ export default function Beneficiaries() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Moneda Cuenta</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Moneda Cuenta</label>
                   <select 
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
@@ -274,7 +274,7 @@ export default function Beneficiaries() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Banco Destino</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Banco Destino</label>
                   <input 
                     type="text" 
                     required
@@ -286,7 +286,7 @@ export default function Beneficiaries() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Tipo Cuenta</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Tipo Cuenta</label>
                   <select 
                     value={accountType}
                     onChange={(e) => setAccountType(e.target.value)}
@@ -301,7 +301,7 @@ export default function Beneficiaries() {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Nº Cuenta / CLABE / IBAN</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Nº Cuenta / CLABE / IBAN</label>
                 <input 
                   type="text" 
                   required

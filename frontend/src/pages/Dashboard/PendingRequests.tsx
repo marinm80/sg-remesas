@@ -39,7 +39,7 @@ export default function PendingRequests() {
 
   const openProcessModal = async (req: any) => {
     setSelectedRequest(req);
-    setOriginAccountId('');
+    setOriginAccountId(req.destination_account_info?.originAccountId || '');
     setDestAccountId('');
     setNotes('');
     setPreviewData(null);
@@ -157,7 +157,7 @@ export default function PendingRequests() {
           <ClipboardList className="text-[#2ABFA3]" size={20} />
           Solicitudes Pendientes de Clientes
         </h2>
-        <p className="text-slate-400 text-sm mt-0.5">
+        <p className="text-slate-300 text-sm mt-0.5">
           Lista de solicitudes de envío o retiro enviadas por clientes para su conciliación manual.
         </p>
       </div>
@@ -181,7 +181,7 @@ export default function PendingRequests() {
           <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
         </div>
       ) : requests.length === 0 ? (
-        <div className="p-12 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-3xl text-sm">
+        <div className="p-12 text-center text-slate-300 bg-slate-900 border border-slate-800 rounded-3xl text-sm">
           No hay solicitudes pendientes en este momento.
         </div>
       ) : (
@@ -193,29 +193,35 @@ export default function PendingRequests() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-extrabold text-white text-base leading-tight">Solicitud de {r.type === 'remesa' ? 'Remesa' : 'Retiro'}</h3>
-                  <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-1 uppercase">
+                  <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1 mt-1 uppercase">
                     Cliente: {r.client_name} (KYC: {r.kyc_level ?? 0})
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-black text-[#2ABFA3] block">{parseFloat(r.amount).toLocaleString()} {r.currency}</span>
-                  <span className="text-[10px] text-slate-500 mt-1 block">Recibido {new Date(r.created_at).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-slate-300 mt-1 block">Recibido {new Date(r.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800 space-y-2 text-xs text-slate-400">
+              <div className="pt-2 border-t border-slate-800 space-y-2 text-xs text-slate-300">
                 <div className="flex justify-between items-start">
-                  <span className="text-slate-500">Destinatario:</span>
+                  <span className="text-slate-300">Cuenta origen:</span>
+                  <span className="font-semibold text-slate-300 text-right">
+                    {r.destination_account_info?.originAccountName || 'No especificada'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <span className="text-slate-300">Destinatario:</span>
                   <span className="font-semibold text-slate-300 text-right">{r.beneficiary?.name || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span className="text-slate-500">Detalles Cuenta:</span>
+                  <span className="text-slate-300">Detalles Cuenta:</span>
                   <span className="font-mono text-slate-300 text-right">
                     {r.destination_account_info?.bankName} - {r.destination_account_info?.accountNumber} ({r.destination_account_info?.accountType})
                   </span>
                 </div>
                 {r.notes && (
-                  <div className="p-2.5 bg-slate-950 rounded-xl text-slate-500 text-[11px] leading-relaxed">
+                  <div className="p-2.5 bg-slate-950 rounded-xl text-slate-300 text-[11px] leading-relaxed">
                     <strong>Nota Cliente:</strong> {r.notes}
                   </div>
                 )}
@@ -252,7 +258,7 @@ export default function PendingRequests() {
               </h3>
               <button 
                 onClick={() => setSelectedRequest(null)}
-                className="text-slate-400 hover:text-white cursor-pointer font-bold text-sm"
+                className="text-slate-300 hover:text-white cursor-pointer font-bold text-sm"
               >
                 Cerrar
               </button>
@@ -261,22 +267,22 @@ export default function PendingRequests() {
             <form onSubmit={handleProcessRequest} className="space-y-4 text-sm">
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Cliente solicitante:</span>
+                  <span className="text-slate-300">Cliente solicitante:</span>
                   <span className="font-bold text-white">{selectedRequest.client_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Monto solicitado:</span>
+                  <span className="text-slate-300">Monto solicitado:</span>
                   <span className="font-bold text-[#2ABFA3]">{parseFloat(selectedRequest.amount).toLocaleString()} {selectedRequest.currency}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Beneficiario:</span>
+                  <span className="text-slate-300">Beneficiario:</span>
                   <span className="font-bold text-slate-300">{selectedRequest.beneficiary?.name} ({selectedRequest.beneficiary?.currency})</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Debitar Cuenta Origen</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Debitar Cuenta Origen</label>
                   <select 
                     value={originAccountId}
                     onChange={(e) => setOriginAccountId(e.target.value)}
@@ -285,14 +291,14 @@ export default function PendingRequests() {
                     <option value="">-- Ninguna (Efectivo/Caja) --</option>
                     {clientAccounts.map((acc) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.balance} {acc.currency})
+                        {acc.name} ({parseFloat(acc.available_balance ?? acc.balance).toLocaleString()} disp. / {parseFloat(acc.reserved_balance ?? 0).toLocaleString()} res. {acc.currency})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 font-bold block mb-1">Depositar Cuenta Destino</label>
+                  <label className="text-xs text-slate-300 font-bold block mb-1">Depositar Cuenta Destino</label>
                   <select 
                     value={destAccountId}
                     onChange={(e) => setDestAccountId(e.target.value)}
@@ -301,7 +307,7 @@ export default function PendingRequests() {
                     <option value="">-- Ninguna (Efectivo/Caja) --</option>
                     {clientAccounts.map((acc) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.balance} {acc.currency})
+                        {acc.name} ({parseFloat(acc.available_balance ?? acc.balance).toLocaleString()} disp. / {parseFloat(acc.reserved_balance ?? 0).toLocaleString()} res. {acc.currency})
                       </option>
                     ))}
                   </select>
@@ -309,7 +315,7 @@ export default function PendingRequests() {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Tasa de cambio conciliada</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Tasa de cambio conciliada</label>
                 <input 
                   type="number" 
                   step="0.000001"
@@ -321,7 +327,7 @@ export default function PendingRequests() {
               </div>
 
               {loadingPreview && (
-                <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-300">
                   <RefreshCw className="animate-spin" size={12} />
                   Calculando comisiones oficiales...
                 </div>
@@ -329,7 +335,7 @@ export default function PendingRequests() {
 
               {previewData && (
                 <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs space-y-2">
-                  <span className="font-bold text-slate-400 block pb-1 border-b border-slate-800">CÁLCULO DE COMISIÓN OFICIAL (REQUISITO BR-19)</span>
+                  <span className="font-bold text-slate-300 block pb-1 border-b border-slate-800">CÁLCULO DE COMISIÓN OFICIAL (REQUISITO BR-19)</span>
                   <div className="flex justify-between">
                     <span>Monto base:</span>
                     <span>{previewData.amount} {previewData.currencyFrom}</span>
@@ -350,7 +356,7 @@ export default function PendingRequests() {
               )}
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Comentario Aprobación (Notes) (BR-07)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Comentario Aprobación (Notes) (BR-07)</label>
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}

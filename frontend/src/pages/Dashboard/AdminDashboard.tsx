@@ -116,12 +116,12 @@ export default function AdminDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900 border border-slate-800 p-6 rounded-3xl gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Resumen Ejecutivo</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Métricas de rentabilidad y volumen general del negocio.</p>
+          <p className="text-slate-300 text-sm mt-0.5">Métricas de rentabilidad y volumen general del negocio.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold text-xs uppercase">Desde:</span>
+            <span className="text-slate-300 font-bold text-xs uppercase">Desde:</span>
             <input 
               type="date"
               value={startDate}
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold text-xs uppercase">Hasta:</span>
+            <span className="text-slate-300 font-bold text-xs uppercase">Hasta:</span>
             <input 
               type="date"
               value={endDate}
@@ -153,38 +153,38 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 font-bold uppercase">Volumen Procesado</span>
+            <span className="text-xs text-slate-300 font-bold uppercase">Volumen Procesado</span>
             <TrendingUp size={16} className="text-[#2ABFA3]" />
           </div>
           <p className="text-2xl font-black text-white">$ {kpis.totalVolumeUsd.toLocaleString()} USD</p>
-          <span className="text-[10px] text-slate-500 font-bold block">Transacciones Completadas</span>
+          <span className="text-[10px] text-slate-300 font-bold block">Transacciones Completadas</span>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 font-bold uppercase">Ingresos Comisiones</span>
+            <span className="text-xs text-slate-300 font-bold uppercase">Ingresos Comisiones</span>
             <Percent size={16} className="text-[#2ABFA3]" />
           </div>
           <p className="text-2xl font-black text-[#2ABFA3]">$ {kpis.totalCommissionsUsd.toLocaleString()} USD</p>
-          <span className="text-[10px] text-slate-500 font-bold block">Recaudación Neta del Periodo</span>
+          <span className="text-[10px] text-slate-300 font-bold block">Recaudación Neta del Periodo</span>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 font-bold uppercase">Usuarios Totales</span>
+            <span className="text-xs text-slate-300 font-bold uppercase">Usuarios Totales</span>
             <Users size={16} className="text-[#2ABFA3]" />
           </div>
           <p className="text-2xl font-black text-white">{kpis.totalUsers} cuentas</p>
-          <span className="text-[10px] text-slate-500 font-bold block">Registros Locales y Google</span>
+          <span className="text-[10px] text-slate-300 font-bold block">Registros Locales y Google</span>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 font-bold uppercase">Alertas AML</span>
+            <span className="text-xs text-slate-300 font-bold uppercase">Alertas AML</span>
             <ShieldAlert size={16} className="text-orange-400" />
           </div>
           <p className="text-2xl font-black text-orange-400">{kpis.activeAlertsCount} pendientes</p>
-          <span className="text-[10px] text-slate-500 font-bold block">Investigaciones de Auditoría</span>
+          <span className="text-[10px] text-slate-300 font-bold block">Investigaciones de Auditoría</span>
         </div>
       </div>
 
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="text-slate-500 font-bold uppercase border-b border-slate-800">
+                  <tr className="text-slate-300 font-bold uppercase border-b border-slate-800">
                     <th className="py-2">Estado</th>
                     <th className="py-2 text-center">Transacciones</th>
                     <th className="py-2 text-right">Volumen total (USD)</th>
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
                   {summaryStats.map((row) => (
                     <tr key={row.status} className="hover:bg-slate-850/40">
                       <td className="py-3 font-semibold capitalize text-slate-300">{row.status}</td>
-                      <td className="py-3 text-center text-slate-400">{row.total_count}</td>
+                      <td className="py-3 text-center text-slate-300">{row.total_count}</td>
                       <td className="py-3 text-right font-mono text-slate-300">$ {parseFloat(row.total_volume_usd).toLocaleString()}</td>
                       <td className="py-3 text-right font-mono text-[#2ABFA3]">$ {parseFloat(row.total_commission_usd).toLocaleString()}</td>
                     </tr>
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="text-slate-500 font-bold uppercase border-b border-slate-800">
+                  <tr className="text-slate-300 font-bold uppercase border-b border-slate-800">
                     <th className="py-2">Operador</th>
                     <th className="py-2 text-center">Transacciones</th>
                     <th className="py-2 text-right">Monto procesado (USD)</th>
@@ -265,10 +265,10 @@ export default function AdminDashboard() {
                     <tr key={row.operator_id} className="hover:bg-slate-850/40">
                       <td className="py-3">
                         <span className="font-semibold text-slate-300 block">{row.operator_name}</span>
-                        <span className="text-[10px] text-slate-500 block">{row.operator_email}</span>
+                        <span className="text-[10px] text-slate-300 block">{row.operator_email}</span>
                       </td>
-                      <td className="py-3 text-center text-slate-400">{row.transactions_count}</td>
-                      <td className="py-3 text-right font-mono text-slate-400">$ {parseFloat(row.total_processed_usd).toLocaleString()}</td>
+                      <td className="py-3 text-center text-slate-300">{row.transactions_count}</td>
+                      <td className="py-3 text-right font-mono text-slate-300">$ {parseFloat(row.total_processed_usd).toLocaleString()}</td>
                       <td className="py-3 text-right font-mono text-emerald-400 font-bold">$ {parseFloat(row.total_commission_to_pay).toLocaleString()}</td>
                     </tr>
                   ))}

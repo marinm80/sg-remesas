@@ -16,6 +16,7 @@ import Beneficiaries from './pages/Dashboard/Beneficiaries.js';
 import ClientTickets from './pages/Dashboard/ClientTickets.js';
 import OperatorDashboard from './pages/Dashboard/OperatorDashboard.js';
 import PendingRequests from './pages/Dashboard/PendingRequests.js';
+import TransactionsHistory from './pages/Dashboard/TransactionsHistory.js';
 import TicketsManagement from './pages/Dashboard/TicketsManagement.js';
 import AdminDashboard from './pages/Dashboard/AdminDashboard.js';
 import UsersManagement from './pages/Dashboard/Users.js';
@@ -98,6 +99,15 @@ export default function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="transactions" 
+            element={
+              <ProtectedRoute allowedRoles={['cliente', 'admin', 'operador']}>
+                <TransactionsHistory />
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="tickets" 
             element={

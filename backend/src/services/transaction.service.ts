@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import type { PoolClient } from 'pg';
 import * as transactionRepository from '../repositories/transaction.repository.js';
 import * as accountRepository from '../repositories/account.repository.js';
+import * as requestRepository from '../repositories/request.repository.js';
 import * as userRepository from '../repositories/user.repository.js';
 import * as amlService from './aml.service.js';
 import * as incentiveService from './incentive.service.js';
@@ -178,6 +179,24 @@ export async function executeTransaction(input: CreateTransactionInput): Promise
     let originAccount: any = null;
     let destinationAccount: any = null;
     let clientId: string | null = null;
+    let reservedAmountToRelease = 0;
+    let reservedOriginAccountId: string | null = null;
+
+    if (clientRequestId) {
+      const clientRequest = await requestRepository.findRequestByIdForUpdate(clientRequestId, client);
+      if (!clientRequest) throw new Error('La solicitud de cliente no existe');
+      if (!['pending', 'processing'].includes(clientRequest.status)) {
+        throw new Error('La solicitud ya fue procesada, cancelada o rechazada');
+      }
+      reservedAmountToRelease = parseFloat((clientRequest.destination_account_info?.reservedAmount ?? clientRequest.amount).toString());
+      reservedOriginAccountId = clientRequest.destination_account_info?.originAccountId || null;
+      if (reservedAmountToRelease > 0 && !accountOriginId) {
+        throw new Error('La aprobaciÃ³n de una solicitud con saldo reservado requiere cuenta origen');
+      }
+      if (reservedOriginAccountId && accountOriginId && reservedOriginAccountId !== accountOriginId) {
+        throw new Error('La cuenta origen no coincide con la reserva de la solicitud');
+      }
+    }
 
     if (accountOriginId) {
       originAccount = await accountRepository.findAccountByIdForUpdate(accountOriginId, client);
@@ -244,13 +263,19 @@ export async function executeTransaction(input: CreateTransactionInput): Promise
     const totalToDebit = commissionSnapshot.totalCharged;
     if (originAccount) {
       const originBalance = parseFloat(originAccount.balance.toString());
-      if (originBalance < totalToDebit) {
-        throw new Error(`Saldo insuficiente en cuenta origen (BR-01). Saldo: ${originBalance}, Requerido: ${totalToDebit}`);
+      const originAvailable = parseFloat((originAccount.available_balance ?? originAccount.balance).toString());
+      const spendableForThisTransaction = originAvailable + reservedAmountToRelease;
+      if (spendableForThisTransaction < totalToDebit) {
+        throw new Error(`Saldo insuficiente en cuenta origen (BR-01). Disponible: ${originAvailable}, Reserva aplicable: ${reservedAmountToRelease}, Requerido: ${totalToDebit}`);
       }
 
       // Descontar saldo de origen
       const newOriginBalance = Math.round((originBalance - totalToDebit) * 100) / 100;
       await accountRepository.updateAccountBalance(originAccount.id, newOriginBalance, client);
+
+      if (reservedAmountToRelease > 0) {
+        await accountRepository.releaseReservedBalance(originAccount.id, reservedAmountToRelease, client);
+      }
     }
 
     // 5. Incrementar saldo en cuenta destino (monto convertido según tipo de cambio)

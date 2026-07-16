@@ -1,4 +1,4 @@
-# Proyecto 02 — Sistema de Gestión Operativo para Negocio de Remesas
+﻿# Proyecto 02 — Sistema de Gestión Operativo para Negocio de Remesas
 
 > **Versión:** 2.0  
 > **Fecha:** 2026-06-24  
@@ -24,6 +24,8 @@ Sistema web completo para una empresa que procesa remesas, retiros y cobros entr
 - Landing page con secciones: hero, servicios, tarifas, cobertura, registro y contacto
 - Registro de clientes desde la landing (email + contraseña, verificación de email)
 - Autenticación y autorización con 4 roles: Cliente, Operador, Administrador, Auditor
+- **Acceso para visitantes (Guest) con credenciales de solo lectura para demostración segura**
+- **Soporte multi-idioma (Español e Inglés) seleccionable desde la interfaz**
 - Panel del cliente: ver sus cuentas, historial de transacciones propias, solicitar operaciones
 - Panel del operador: registrar y procesar transacciones, atender solicitudes de clientes
 - Gestión de cuentas (bancarias, digitales, efectivo) en múltiples monedas
@@ -51,6 +53,7 @@ Sistema web completo para una empresa que procesa remesas, retiros y cobros entr
 | Operador | Personal interno que procesa operaciones diarias | Crear y actualizar transacciones, atender solicitudes de clientes, ver todas las cuentas. No puede eliminar ni acceder a configuración |
 | Administrador | Dueño o gerente del negocio. Gestión total del sistema | CRUD completo: cuentas, transacciones, usuarios, clientes, configuración, reportes |
 | Auditor | Rol de solo lectura para revisión interna o contable | Ver todas las transacciones, logs y reportes. Sin crear ni modificar nada |
+| Visitante (Guest) | Usuario de prueba preconfigurado para explorar el sistema | Acceso de solo lectura al panel de cliente, con bloqueo de transacciones, tickets o perfil (BR-37) |
 
 ---
 
@@ -69,6 +72,8 @@ Sistema web completo para una empresa que procesa remesas, retiros y cobros entr
 | ID | Nombre | Descripción | Actor | Prioridad |
 |----|--------|-------------|-------|-----------|
 | RF-04 | Autenticación JWT + OAuth | Dos métodos de login: (a) email + contraseña con JWT (access token + refresh token, expiración configurable); (b) OAuth con Google — el backend intercambia el código de autorización por el perfil del usuario y emite su propio JWT. El dashboard renderiza vistas distintas según el rol incluido en el token | Todos | Alta |
+| RF-04b | Acceso de visitante (Guest) | El sistema expone un usuario demo preconfigurado (username: `Guest`, password: `Guest123!_User` o similar) para explorar la plataforma sin registrarse. Este usuario tiene permisos de Cliente con restricciones estrictas de solo lectura (BR-37) | Visitante | Alta |
+| RF-04c | Selector de idioma (Internacionalización) | La interfaz permite cambiar dinámicamente entre Español e Inglés en la landing y el dashboard. La preferencia del idioma se persiste en LocalStorage y se transmite al backend para los mensajes de la API | Todos | Alta |
 | RF-05 | Recuperación de contraseña | El cliente solicita reset de contraseña ingresando su email. El sistema envía un enlace con token de un solo uso que expira en 1 hora. Solo aplica a cuentas registradas con email + contraseña; las cuentas OAuth no tienen contraseña que recuperar | Cliente | Alta |
 
 ### 4.3 Panel del cliente
@@ -250,6 +255,8 @@ Sistema web completo para una empresa que procesa remesas, retiros y cobros entr
 | BR-34 | Tracking code único e inmutable | El `tracking_code` de una transacción se genera al crearla y nunca cambia, incluso si la transacción es revertida. El endpoint `/track/:code` no requiere autenticación y responde aunque la transacción esté en cualquier estado |
 | BR-35 | Alerta AML no bloquea la transacción | Una alerta de cumplimiento es informativa — no detiene la transacción automáticamente. La decisión de actuar sobre ella es del auditor. Si el auditor o admin desea bloquear futuras operaciones de un cliente, debe hacerlo explícitamente desactivando la cuenta desde el panel de usuarios |
 | BR-36 | Notificación entregada una sola vez por evento | El sistema verifica que no exista ya una notificación no leída del mismo tipo + entidad antes de crear una nueva. Esto evita duplicar notificaciones si el mismo evento se dispara más de una vez por error |
+| BR-37 | Restricciones de escritura para el usuario Guest | El usuario demo 'Guest' tiene prohibido realizar cualquier acción de creación, actualización o eliminación (POST, PUT, DELETE) en la base de datos. Al intentar realizar una solicitud de remesa, crear beneficiarios, enviar mensajes, abrir tickets, modificar perfil o subir documentos, el backend debe retornar 403 Forbidden y el frontend bloquear el envío y mostrar un aviso |
+| BR-38 | Consistencia de idioma en API | El backend debe usar la cabecera `Accept-Language` de la petición HTTP para formatear las respuestas de error y mensajes informativos en el idioma del cliente (Español o Inglés). Si no se proporciona, se usará Español como idioma por defecto |
 
 ---
 
@@ -410,6 +417,8 @@ Caso: Cualquier operador procesa transacción de 80 USD
 | RF-42 | Regla de fraccionamiento detecta el patrón | Registrar 3 transacciones al mismo beneficiario en < 24h cuya suma supera $2.000 → verificar alerta generada con `rule_code = structuring` |
 | RF-45 | El tracking code es único y el endpoint no requiere auth | POST /transactions → verificar `tracking_code` en respuesta → GET /track/:code sin token → debe retornar estado de la transacción sin datos sensibles |
 | RF-47/48 | Cambio de estado de transacción genera notificación al cliente | Operador cambia estado de transacción a "completada" → badge del cliente debe incrementarse en 1 → al abrir el centro, aparece la notificación con enlace a la transacción |
+| RF-04b | Acceso Guest de solo lectura | Iniciar sesión como `Guest` con clave `Guest123!_User` → dashboard debe cargar con datos del cliente demo. Al intentar POST /transactions o POST /tickets con este token → debe retornar 403 Forbidden |
+| RF-04c | Cambio de idioma dinámico en UI y API | Cambiar idioma a Inglés en el selector de la UI → textos e inputs deben cambiar a inglés. Petición con Accept-Language: en con datos incorrectos → la API debe retornar mensajes de error en inglés |
 
 ---
 
@@ -516,3 +525,31 @@ Caso: Cualquier operador procesa transacción de 80 USD
 | Operador | Transacciones · Solicitudes pendientes · Clientes · Tickets · Cuentas · Tasas de cambio |
 | Admin | Todo lo del operador + Usuarios · **Reportes** *(transacciones / clientes / tickets / auditoría)* · Configuración |
 | Auditor | Transacciones *(solo lectura)* · **Reportes** *(todos)* · Log de auditoría |
+
+
+---
+
+## Requerimientos de Marca y Firma de Autor (Branding)
+
+### 1. Firma en Código Fuente
+Todos los archivos fuente principales del frontend y backend deben incluir obligatoriamente en su primera línea un bloque de comentarios con la firma del desarrollador y el enlace a su portafolio:
+`javascript
+/**
+ * ====================================================================
+ * PROYECTO: Sistema de Gestión Operativo para Negocio de Remesas
+ * AUTOR: Rafael Marín
+ * PORTFOLIO: https://github.com/marinm80
+ * DESCRIPCIÓN: Desarrollado como proyecto práctico de nivel profesional.
+ * ====================================================================
+ */
+`
+
+### 2. Enlace en Frontend (Interfaz de Usuario)
+La interfaz gráfica de usuario debe incluir de manera visible los siguientes elementos de redirección al portafolio personal:
+- **Cintillo / Banner de Demostración (Dashboard/Panel):** Un banner estático o flotante en la parte superior o inferior del dashboard privado que indique:
+  - *Español:* `✨ Estás viendo una aplicación de demostración de Rafael Marín. [Volver al Portafolio Principal ↗]`
+  - *Inglés:* `✨ You are viewing a demo application by Rafael Marín. [Back to Main Portfolio ↗]`
+- **Footer de Créditos (Landing Page / Web Pública):** En el pie de página de la landing page pública o sitio de inicio:
+  - *Español:* `Diseñado y Desarrollado por Rafael Marín — Ver Portafolio`
+  - *Inglés:* `Designed & Developed by Rafael Marín — View Portfolio`
+- **Criterio de Aceptación Relacionado:** Al hacer clic en cualquiera de estos enlaces, el usuario debe ser redirigido al portafolio principal en una nueva pestaña del navegador (usando `target="_blank" rel="noopener noreferrer"`).

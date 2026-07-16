@@ -12,14 +12,16 @@ router.use(authenticateToken);
 
 // Rutas de transacciones
 router.get('/', requirePermission('transactions.view'), transactionController.getTransactions);
-router.get('/:id', requirePermission('transactions.view'), transactionController.getTransactionDetails);
 router.post('/preview', transactionController.previewTransaction); // Usado por clientes y operadores para simular comisiones
-router.post('/', requirePermission('transactions.create'), transactionController.createTransaction);
-router.post('/:id/revert', requirePermission('transactions.revert'), transactionController.revertTransaction);
 
 // Rutas de solicitudes de cliente
 router.get('/requests/all', transactionController.getClientRequests); // Filtrado interno maneja aislamiento de cliente/operador
 router.post('/requests', transactionController.createClientRequest);
+router.put('/requests/:id/cancel', transactionController.cancelClientRequest);
 router.put('/requests/:id/status', requirePermission('transactions.status_change'), transactionController.updateClientRequestStatus);
+
+router.get('/:id', requirePermission('transactions.view'), transactionController.getTransactionDetails);
+router.post('/', requirePermission('transactions.create'), transactionController.createTransaction);
+router.post('/:id/revert', requirePermission('transactions.revert'), transactionController.revertTransaction);
 
 export default router;

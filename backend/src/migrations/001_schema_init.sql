@@ -75,10 +75,12 @@ CREATE TABLE IF NOT EXISTS accounts (
     type VARCHAR(20) NOT NULL, -- bank/digital/cash
     currency CHAR(3) NOT NULL, -- USD, MXN, PEN, etc.
     balance DECIMAL(15,2) DEFAULT 0.00 NOT NULL,
+    reserved_balance DECIMAL(15,2) DEFAULT 0.00 NOT NULL,
     client_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL indica cuenta interna de la empresa
     is_active BOOLEAN DEFAULT true NOT NULL,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMP NULL
 );
 
@@ -108,7 +110,7 @@ CREATE TABLE IF NOT EXISTS client_requests (
     destination_account_info JSONB NOT NULL,
     beneficiary JSONB NOT NULL,
     notes TEXT NULL,
-    status VARCHAR(20) DEFAULT 'pending' NOT NULL, -- pending/processing/completed/rejected
+    status VARCHAR(20) DEFAULT 'pending' NOT NULL, -- pending/processing/completed/rejected/cancelled
     processed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL

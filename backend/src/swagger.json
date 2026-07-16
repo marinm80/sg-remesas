@@ -834,12 +834,32 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["type", "amount", "currency", "beneficiary_id"],
+                "required": ["type", "accountOriginId", "amount", "currency", "destinationAccountInfo", "beneficiary"],
                 "properties": {
                   "type": { "type": "string", "enum": ["remesa", "retiro"], "example": "remesa" },
+                  "accountOriginId": { "type": "string", "format": "uuid" },
                   "amount": { "type": "number", "example": 200.00 },
                   "currency": { "type": "string", "example": "USD" },
-                  "beneficiary_id": { "type": "string", "format": "uuid" },
+                  "destinationAccountInfo": {
+                    "type": "object",
+                    "properties": {
+                      "originAccountId": { "type": "string", "format": "uuid" },
+                      "originAccountName": { "type": "string", "example": "Cuenta personal USD" },
+                      "originAccountCurrency": { "type": "string", "example": "USD" },
+                      "bankName": { "type": "string", "example": "BBVA Mexico" },
+                      "accountNumber": { "type": "string", "example": "012180001234567890" },
+                      "accountType": { "type": "string", "example": "clabe" },
+                      "country": { "type": "string", "example": "MX" }
+                    }
+                  },
+                  "beneficiary": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "format": "uuid" },
+                      "name": { "type": "string", "example": "Jose Gonzalez" },
+                      "currency": { "type": "string", "example": "MXN" }
+                    }
+                  },
                   "notes": { "type": "string", "example": "Remesa escolar" }
                 }
               }

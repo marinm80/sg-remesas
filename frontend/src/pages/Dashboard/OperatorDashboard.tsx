@@ -201,7 +201,7 @@ export default function OperatorDashboard() {
       rejected: { text: 'Rechazada', classes: 'bg-red-500/10 text-red-400 border-red-500/25' },
       reversed: { text: 'Revertida', classes: 'bg-orange-500/10 text-orange-400 border-orange-500/25' },
     };
-    const item = maps[status] || { text: status, classes: 'bg-slate-800 text-slate-400' };
+    const item = maps[status] || { text: status, classes: 'bg-slate-800 text-slate-300' };
     return (
       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${item.classes}`}>
         {item.text}
@@ -214,12 +214,12 @@ export default function OperatorDashboard() {
       {/* Box stats header */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-900 border border-slate-800 p-6 rounded-3xl">
         <div className="space-y-1">
-          <span className="text-xs text-slate-500 font-bold block">CAJA DIARIA (VOLUMEN)</span>
+          <span className="text-xs text-slate-300 font-bold block">CAJA DIARIA (VOLUMEN)</span>
           <span className="text-2xl font-black text-white">$ {dailyVolumeUsd.toLocaleString()} USD</span>
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs text-slate-500 font-bold block">OPERACIONES HOY</span>
+          <span className="text-xs text-slate-300 font-bold block">OPERACIONES HOY</span>
           <span className="text-2xl font-black text-white">{dailyTxCount} remesas</span>
         </div>
 
@@ -250,7 +250,7 @@ export default function OperatorDashboard() {
 
       {/* Operations List */}
       <div className="space-y-4">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Últimos movimientos de caja</h3>
+        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Últimos movimientos de caja</h3>
 
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
           {loading ? (
@@ -258,14 +258,14 @@ export default function OperatorDashboard() {
               <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
             </div>
           ) : transactions.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 text-sm">
+            <div className="p-12 text-center text-slate-300 text-sm">
               No hay transacciones registradas.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                  <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                     <th className="px-6 py-4">Fecha</th>
                     <th className="px-6 py-4">Código / Ref</th>
                     <th className="px-6 py-4">Usuario Cliente</th>
@@ -277,16 +277,16 @@ export default function OperatorDashboard() {
                 <tbody className="divide-y divide-slate-800/80">
                   {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-slate-800/20 transition-colors">
-                      <td className="px-6 py-4 text-slate-400 whitespace-nowrap">
+                      <td className="px-6 py-4 text-slate-300 whitespace-nowrap">
                         {new Date(tx.created_at).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="font-mono text-white block">{tx.tracking_code}</span>
-                        <span className="text-xs text-slate-500 block truncate max-w-xs">{tx.reference || 'Sin referencia'}</span>
+                        <span className="text-xs text-slate-300 block truncate max-w-xs">{tx.reference || 'Sin referencia'}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-slate-300 block">{tx.client_name || 'Interno'}</span>
-                        <span className="text-xs text-slate-500 block">{tx.client_email || 'empresa@remesas.com'}</span>
+                        <span className="text-xs text-slate-300 block">{tx.client_email || 'empresa@remesas.com'}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                         {tx.beneficiary_snapshot?.name || 'N/A'}
@@ -319,7 +319,7 @@ export default function OperatorDashboard() {
               </h3>
               <button 
                 onClick={() => setShowTxModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -328,7 +328,7 @@ export default function OperatorDashboard() {
             <form onSubmit={handleCreateTransaction} className="space-y-4 text-sm">
               {/* Select Client */}
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Cliente Asociado</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Cliente Asociado</label>
                 <select 
                   value={selectedClientId}
                   onChange={(e) => setSelectedClientId(e.target.value)}
@@ -348,7 +348,7 @@ export default function OperatorDashboard() {
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Tipo de Operación</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Tipo de Operación</label>
                       <select 
                         value={type}
                         onChange={(e) => setType(e.target.value)}
@@ -362,7 +362,7 @@ export default function OperatorDashboard() {
                     </div>
 
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Divisa Transacción</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Divisa Transacción</label>
                       <select 
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
@@ -379,7 +379,7 @@ export default function OperatorDashboard() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Cuenta de Origen</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Cuenta de Origen</label>
                       <select 
                         value={originAccountId}
                         onChange={(e) => setOriginAccountId(e.target.value)}
@@ -395,7 +395,7 @@ export default function OperatorDashboard() {
                     </div>
 
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Cuenta de Destino</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Cuenta de Destino</label>
                       <select 
                         value={destAccountId}
                         onChange={(e) => setDestAccountId(e.target.value)}
@@ -413,7 +413,7 @@ export default function OperatorDashboard() {
 
                   {type === 'remesa' && (
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Destinatario Final (Beneficiario)</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Destinatario Final (Beneficiario)</label>
                       <select 
                         value={beneficiaryId}
                         onChange={(e) => setBeneficiaryId(e.target.value)}
@@ -432,7 +432,7 @@ export default function OperatorDashboard() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Monto de Operación</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Monto de Operación</label>
                       <input 
                         type="number" 
                         required
@@ -444,7 +444,7 @@ export default function OperatorDashboard() {
                     </div>
 
                     <div>
-                      <label className="text-xs text-slate-400 font-bold block mb-1">Tipo de Cambio Utilizado</label>
+                      <label className="text-xs text-slate-300 font-bold block mb-1">Tipo de Cambio Utilizado</label>
                       <input 
                         type="number" 
                         required
@@ -458,7 +458,7 @@ export default function OperatorDashboard() {
 
                   {/* Vista previa en tiempo real */}
                   {loadingPreview && (
-                    <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center justify-center gap-2 text-xs text-slate-300">
                       <RefreshCw className="animate-spin" size={12} />
                       Evaluando límites KYC y comisiones...
                     </div>
@@ -466,7 +466,7 @@ export default function OperatorDashboard() {
 
                   {previewData && (
                     <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs space-y-2">
-                      <span className="font-bold text-slate-400 block pb-1 border-b border-slate-800">DESGLOSE FINANCIERO OFICIAL (REQUISITO BR-19)</span>
+                      <span className="font-bold text-slate-300 block pb-1 border-b border-slate-800">DESGLOSE FINANCIERO OFICIAL (REQUISITO BR-19)</span>
                       <div className="flex justify-between">
                         <span>Monto enviado:</span>
                         <span>{previewData.amount} {previewData.currencyFrom}</span>
@@ -487,7 +487,7 @@ export default function OperatorDashboard() {
                   )}
 
                   <div>
-                    <label className="text-xs text-slate-400 font-bold block mb-1">Referencia interna (Opcional)</label>
+                    <label className="text-xs text-slate-300 font-bold block mb-1">Referencia interna (Opcional)</label>
                     <input 
                       type="text" 
                       value={reference}
@@ -498,7 +498,7 @@ export default function OperatorDashboard() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-400 font-bold block mb-1">Comentarios / Notas (BR-07)</label>
+                    <label className="text-xs text-slate-300 font-bold block mb-1">Comentarios / Notas (BR-07)</label>
                     <textarea 
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}

@@ -7,6 +7,8 @@ export interface Account {
   type: string; // bank/digital/cash
   currency: string;
   balance: number;
+  reserved_balance: number;
+  available_balance: number;
   client_id: string | null; // null = cuenta interna de la empresa
   is_active: boolean;
   created_by: string | null;
@@ -42,7 +44,33 @@ export async function createAccount(account: {
  */
 export async function findAccountById(id: string): Promise<Account | null> {
   const query = `
-    SELECT * FROM accounts WHERE id = $1 AND deleted_at IS NULL;
+    WITH pending_reservations AS (
+      SELECT
+        COALESCE(
+          NULLIF(destination_account_info->>'originAccountId', '')::uuid,
+          matched_account.id
+        ) AS account_id,
+        SUM(COALESCE((destination_account_info->>'reservedAmount')::decimal, amount)) AS total_reserved
+      FROM client_requests
+      LEFT JOIN accounts matched_account
+        ON matched_account.client_id = client_requests.client_id
+       AND matched_account.name = destination_account_info->>'originAccountName'
+       AND matched_account.currency = client_requests.currency
+       AND matched_account.deleted_at IS NULL
+      WHERE status IN ('pending', 'processing')
+        AND (
+          NULLIF(destination_account_info->>'originAccountId', '') IS NOT NULL
+          OR matched_account.id IS NOT NULL
+        )
+      GROUP BY COALESCE(NULLIF(destination_account_info->>'originAccountId', '')::uuid, matched_account.id)
+    )
+    SELECT
+      a.*,
+      GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS reserved_balance,
+      a.balance - GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS available_balance
+    FROM accounts a
+    LEFT JOIN pending_reservations pr ON pr.account_id = a.id
+    WHERE a.id = $1 AND a.deleted_at IS NULL;
   `;
   const result = await pool.query(query, [id]);
   return result.rows.length ? result.rows[0] : null;
@@ -53,7 +81,34 @@ export async function findAccountById(id: string): Promise<Account | null> {
  */
 export async function findAccountByIdForUpdate(id: string, client: any): Promise<Account | null> {
   const query = `
-    SELECT * FROM accounts WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
+    WITH pending_reservations AS (
+      SELECT
+        COALESCE(
+          NULLIF(destination_account_info->>'originAccountId', '')::uuid,
+          matched_account.id
+        ) AS account_id,
+        SUM(COALESCE((destination_account_info->>'reservedAmount')::decimal, amount)) AS total_reserved
+      FROM client_requests
+      LEFT JOIN accounts matched_account
+        ON matched_account.client_id = client_requests.client_id
+       AND matched_account.name = destination_account_info->>'originAccountName'
+       AND matched_account.currency = client_requests.currency
+       AND matched_account.deleted_at IS NULL
+      WHERE status IN ('pending', 'processing')
+        AND (
+          NULLIF(destination_account_info->>'originAccountId', '') IS NOT NULL
+          OR matched_account.id IS NOT NULL
+        )
+      GROUP BY COALESCE(NULLIF(destination_account_info->>'originAccountId', '')::uuid, matched_account.id)
+    )
+    SELECT
+      a.*,
+      GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS reserved_balance,
+      a.balance - GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS available_balance
+    FROM accounts a
+    LEFT JOIN pending_reservations pr ON pr.account_id = a.id
+    WHERE a.id = $1 AND a.deleted_at IS NULL
+    FOR UPDATE OF a;
   `;
   const result = await client.query(query, [id]);
   return result.rows.length ? result.rows[0] : null;
@@ -64,9 +119,34 @@ export async function findAccountByIdForUpdate(id: string, client: any): Promise
  */
 export async function findAccountsByClientId(clientId: string): Promise<Account[]> {
   const query = `
-    SELECT * FROM accounts 
-    WHERE client_id = $1 AND deleted_at IS NULL
-    ORDER BY created_at DESC;
+    WITH pending_reservations AS (
+      SELECT
+        COALESCE(
+          NULLIF(destination_account_info->>'originAccountId', '')::uuid,
+          matched_account.id
+        ) AS account_id,
+        SUM(COALESCE((destination_account_info->>'reservedAmount')::decimal, amount)) AS total_reserved
+      FROM client_requests
+      LEFT JOIN accounts matched_account
+        ON matched_account.client_id = client_requests.client_id
+       AND matched_account.name = destination_account_info->>'originAccountName'
+       AND matched_account.currency = client_requests.currency
+       AND matched_account.deleted_at IS NULL
+      WHERE status IN ('pending', 'processing')
+        AND (
+          NULLIF(destination_account_info->>'originAccountId', '') IS NOT NULL
+          OR matched_account.id IS NOT NULL
+        )
+      GROUP BY COALESCE(NULLIF(destination_account_info->>'originAccountId', '')::uuid, matched_account.id)
+    )
+    SELECT
+      a.*,
+      GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS reserved_balance,
+      a.balance - GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS available_balance
+    FROM accounts a
+    LEFT JOIN pending_reservations pr ON pr.account_id = a.id
+    WHERE a.client_id = $1 AND a.deleted_at IS NULL
+    ORDER BY a.created_at DESC;
   `;
   const result = await pool.query(query, [clientId]);
   return result.rows;
@@ -77,8 +157,34 @@ export async function findAccountsByClientId(clientId: string): Promise<Account[
  */
 export async function findAllAccounts(): Promise<any[]> {
   const query = `
-    SELECT a.*, u.name as client_name, u.email as client_email
+    WITH pending_reservations AS (
+      SELECT
+        COALESCE(
+          NULLIF(destination_account_info->>'originAccountId', '')::uuid,
+          matched_account.id
+        ) AS account_id,
+        SUM(COALESCE((destination_account_info->>'reservedAmount')::decimal, amount)) AS total_reserved
+      FROM client_requests
+      LEFT JOIN accounts matched_account
+        ON matched_account.client_id = client_requests.client_id
+       AND matched_account.name = destination_account_info->>'originAccountName'
+       AND matched_account.currency = client_requests.currency
+       AND matched_account.deleted_at IS NULL
+      WHERE status IN ('pending', 'processing')
+        AND (
+          NULLIF(destination_account_info->>'originAccountId', '') IS NOT NULL
+          OR matched_account.id IS NOT NULL
+        )
+      GROUP BY COALESCE(NULLIF(destination_account_info->>'originAccountId', '')::uuid, matched_account.id)
+    )
+    SELECT
+      a.*,
+      GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS reserved_balance,
+      a.balance - GREATEST(a.reserved_balance, COALESCE(pr.total_reserved, 0)) AS available_balance,
+      u.name as client_name,
+      u.email as client_email
     FROM accounts a
+    LEFT JOIN pending_reservations pr ON pr.account_id = a.id
     LEFT JOIN users u ON a.client_id = u.id
     WHERE a.deleted_at IS NULL
     ORDER BY a.created_at DESC;
@@ -103,6 +209,49 @@ export async function updateAccountBalance(
   `;
   const executor = clientTx || pool;
   await executor.query(query, [newBalance, id]);
+}
+
+/**
+ * Ajusta el saldo reservado de una cuenta dentro de una transacciÃ³n.
+ * Usa una guarda para evitar reservas negativas o mayores al saldo total.
+ */
+export async function adjustReservedBalance(
+  id: string,
+  delta: number,
+  clientTx?: PoolClient
+): Promise<void> {
+  const query = `
+    UPDATE accounts
+    SET reserved_balance = reserved_balance + $1,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2
+      AND reserved_balance + $1 >= 0
+      AND balance - (reserved_balance + $1) >= 0;
+  `;
+  const executor = clientTx || pool;
+  const result = await executor.query(query, [delta, id]);
+  if (result.rowCount === 0) {
+    throw new Error('No hay saldo disponible suficiente para actualizar la reserva de la cuenta.');
+  }
+}
+
+/**
+ * Libera saldo reservado sin fallar si la reserva materializada quedÃ³ desfasada.
+ * Las consultas de cuentas recalculan la reserva efectiva desde solicitudes pendientes.
+ */
+export async function releaseReservedBalance(
+  id: string,
+  amount: number,
+  clientTx?: PoolClient
+): Promise<void> {
+  const query = `
+    UPDATE accounts
+    SET reserved_balance = GREATEST(reserved_balance - $1, 0),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2;
+  `;
+  const executor = clientTx || pool;
+  await executor.query(query, [amount, id]);
 }
 
 /**

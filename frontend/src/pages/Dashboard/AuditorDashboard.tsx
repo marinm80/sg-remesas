@@ -100,7 +100,7 @@ export default function AuditorDashboard() {
           <ShieldAlert className="text-[#2ABFA3]" size={20} />
           Bandeja de Cumplimiento Normativo (AML / PLD)
         </h2>
-        <p className="text-slate-400 text-sm mt-0.5">
+        <p className="text-slate-300 text-sm mt-0.5">
           Audita alertas de lavado de dinero gatilladas en base a las transacciones registradas del sistema.
         </p>
       </div>
@@ -123,7 +123,7 @@ export default function AuditorDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Side: Compliance Rules overview */}
         <div className="lg:col-span-4 space-y-6">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <Settings size={16} className="text-[#2ABFA3]" />
             Reglas de Alerta AML
           </h3>
@@ -136,11 +136,11 @@ export default function AuditorDashboard() {
                   {rule.is_active ? (
                     <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-extrabold border border-emerald-500/20">ACTIVA</span>
                   ) : (
-                    <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 text-[8px] font-extrabold border border-slate-700">INACTIVA</span>
+                    <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[8px] font-extrabold border border-slate-700">INACTIVA</span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed font-sans">{rule.description}</p>
-                <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1 font-mono">
+                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{rule.description}</p>
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-300 space-y-1 font-mono">
                   <p>Umbral: $ {parseFloat(rule.threshold_amount_usd).toLocaleString()} USD</p>
                   {rule.window_hours && <p>Ventana: {rule.window_hours} horas</p>}
                   {rule.transaction_count && <p>Frecuencia: {rule.transaction_count}+ txs</p>}
@@ -158,7 +158,7 @@ export default function AuditorDashboard() {
             {/* Filter controls */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
-                <label className="text-[10px] text-slate-500 font-bold block mb-1">Estado de Alerta</label>
+                <label className="text-[10px] text-slate-300 font-bold block mb-1">Estado de Alerta</label>
                 <select 
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
@@ -171,7 +171,7 @@ export default function AuditorDashboard() {
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-500 font-bold block mb-1">Tipo de Regla</label>
+                <label className="text-[10px] text-slate-300 font-bold block mb-1">Tipo de Regla</label>
                 <select 
                   value={ruleCode}
                   onChange={(e) => setRuleCode(e.target.value)}
@@ -185,7 +185,7 @@ export default function AuditorDashboard() {
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-500 font-bold block mb-1">Email Cliente</label>
+                <label className="text-[10px] text-slate-300 font-bold block mb-1">Email Cliente</label>
                 <input 
                   type="text"
                   placeholder="juan@ejemplo.com"
@@ -204,14 +204,14 @@ export default function AuditorDashboard() {
                 <RefreshCw className="animate-spin text-[#2ABFA3]" size={36} />
               </div>
             ) : alerts.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 text-sm">
+              <div className="p-12 text-center text-slate-300 text-sm">
                 No hay alertas de cumplimiento AML en esta bandeja.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase bg-slate-900/50">
+                    <tr className="border-b border-slate-800 text-slate-300 text-xs font-bold uppercase bg-slate-900/50">
                       <th className="px-6 py-4">Alerta / Regla</th>
                       <th className="px-6 py-4">Cliente</th>
                       <th className="px-6 py-4 text-right">Monto Gatillado</th>
@@ -224,11 +224,11 @@ export default function AuditorDashboard() {
                       <tr key={a.id} className="hover:bg-slate-800/20 text-xs">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-extrabold text-white block">{getAlertLabel(a.rule_code)}</span>
-                          <span className="text-[10px] text-slate-500 block font-mono">Remesa: {a.tracking_code}</span>
+                          <span className="text-[10px] text-slate-300 block font-mono">Remesa: {a.tracking_code}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-slate-300 block">{a.client_name}</span>
-                          <span className="text-[10px] text-slate-500 block">{a.client_email}</span>
+                          <span className="text-[10px] text-slate-300 block">{a.client_email}</span>
                         </td>
                         <td className="px-6 py-4 text-right whitespace-nowrap font-mono font-bold text-orange-400">
                           $ {parseFloat(a.triggered_amount_usd).toLocaleString()} USD
@@ -237,7 +237,7 @@ export default function AuditorDashboard() {
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
                             a.status === 'pending' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 animate-pulse' :
                             a.status === 'reviewed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            'bg-slate-850 text-slate-400 border-slate-700'
+                            'bg-slate-850 text-slate-300 border-slate-700'
                           }`}>
                             {a.status === 'pending' ? 'pendiente' : a.status === 'reviewed' ? 'revisada' : 'descartada'}
                           </span>
@@ -254,7 +254,7 @@ export default function AuditorDashboard() {
                               Investigar
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-500 italic block max-w-xs truncate" title={a.reviewer_comment}>
+                            <span className="text-[10px] text-slate-300 italic block max-w-xs truncate" title={a.reviewer_comment}>
                               Nota: {a.reviewer_comment}
                             </span>
                           )}
@@ -280,7 +280,7 @@ export default function AuditorDashboard() {
               </h3>
               <button 
                 onClick={() => setShowReviewModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-300 hover:text-white cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -288,13 +288,13 @@ export default function AuditorDashboard() {
 
             <form onSubmit={handleReviewAlertSubmit} className="space-y-4 text-sm">
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1">
-                <p className="text-slate-400 text-xs">Regla: <strong className="text-white">{getAlertLabel(selectedAlert.rule_code)}</strong></p>
-                <p className="text-slate-400 text-xs">Monto gatillado: <strong className="text-orange-400">$ {parseFloat(selectedAlert.triggered_amount_usd).toLocaleString()} USD</strong></p>
-                <p className="text-slate-400 text-xs">Cliente: <strong className="text-white">{selectedAlert.client_name}</strong></p>
+                <p className="text-slate-300 text-xs">Regla: <strong className="text-white">{getAlertLabel(selectedAlert.rule_code)}</strong></p>
+                <p className="text-slate-300 text-xs">Monto gatillado: <strong className="text-orange-400">$ {parseFloat(selectedAlert.triggered_amount_usd).toLocaleString()} USD</strong></p>
+                <p className="text-slate-300 text-xs">Cliente: <strong className="text-white">{selectedAlert.client_name}</strong></p>
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Resultado de Auditoría</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Resultado de Auditoría</label>
                 <select 
                   value={reviewStatus}
                   onChange={(e) => setReviewStatus(e.target.value)}
@@ -306,7 +306,7 @@ export default function AuditorDashboard() {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 font-bold block mb-1">Comentarios de Investigación (Comentario obligatorio)</label>
+                <label className="text-xs text-slate-300 font-bold block mb-1">Comentarios de Investigación (Comentario obligatorio)</label>
                 <textarea 
                   required
                   value={reviewerComment}

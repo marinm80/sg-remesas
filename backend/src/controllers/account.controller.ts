@@ -38,8 +38,8 @@ export async function getAccounts(req: Request, res: Response): Promise<void> {
  */
 export async function createAccount(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
-  if (!user || user.role_name !== 'admin') {
-    res.status(403).json({ status: 'error', message: 'Acceso denegado: Se requiere rol de Administrador' });
+  if (!user || !['admin', 'cliente'].includes(user.role_name)) {
+    res.status(403).json({ status: 'error', message: 'Acceso denegado' });
     return;
   }
 
@@ -58,12 +58,14 @@ export async function createAccount(req: Request, res: Response): Promise<void> 
   }
 
   try {
+    const clientId = user.role_name === 'cliente' ? user.id : value.client_id;
+
     const account = await accountRepository.createAccount({
       name: value.name,
       type: value.type,
       currency: value.currency,
       balance: value.balance,
-      client_id: value.client_id,
+      client_id: clientId,
       created_by: user.id,
     });
 
